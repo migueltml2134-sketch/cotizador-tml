@@ -7,7 +7,7 @@
 <title>Cotizador TML</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="inventario.js?v=20261027100217"></script>
+<script src="inventario.js?v=20261027101447"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -340,7 +340,7 @@ textarea { min-height: 80px; resize: vertical; }
 .tabla-scroll { overflow-x: auto; }
 .oculto { display: none !important; }
 </style>
-<script>(function(){var V='20261027100217';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+<script>(function(){var V='20261027101447';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
 </head>
 <body>
 
@@ -397,14 +397,14 @@ textarea { min-height: 80px; resize: vertical; }
           <label>Dirección de origen</label>
           <div class="addr-wrap">
             <input type="text" id="origen" placeholder="Ej: Av. Insurgentes 1234, CDMX" oninput="resetAddr('origen')">
-            <button class="addr-btn" onclick="geocodificar('origen')" title="Buscar dirección">🔍</button>
+            <button class="addr-btn" onclick="calcularRuta()" title="Buscar dirección">🔍</button>
             <span class="addr-ok" id="origen-ok">✅</span>
           </div>
 
           <label>Dirección de destino</label>
           <div class="addr-wrap">
             <input type="text" id="destino" placeholder="Ej: Calle Juárez 50, Guadalajara" oninput="resetAddr('destino')">
-            <button class="addr-btn" onclick="geocodificar('destino')" title="Buscar dirección">🔍</button>
+            <button class="addr-btn" onclick="calcularRuta()" title="Buscar dirección">🔍</button>
             <span class="addr-ok" id="destino-ok">✅</span>
           </div>
 
@@ -720,36 +720,50 @@ function actualizarMapa(coords, esVistaPrevia) {
 }
 
 // ── Geocodificación ───────────────────────────────────────────────────────
-async function geocodificar(tipo) {
+/** Busca una dirección. Devuelve true si la encontró. Con soloBuscar no lanza el cálculo de ruta. */
+async function geocodificar(tipo, soloBuscar) {
   const inp = $(tipo), val = inp.value.trim();
-  if (!val) return;
+  if (!val) return false;
   inp.disabled = true;
   let d;
-  try { d = await adm('geocode', val); } catch (e) { inp.disabled = false; alert(e); return; }
+  try { d = await adm('geocode', val); }
+  catch (e) {
+    inp.disabled = false;
+    $('error-ruta').textContent = '⚠️ ' + (tipo === 'origen' ? 'Origen' : 'Destino') + ': ' + e; $('error-ruta').style.display = 'block';
+    return false;
+  }
   inp.disabled = false;
   if (tipo === 'origen') { S.olat = d.lat; S.olon = d.lon; $('origen-ok').style.display = 'block'; }
   else { S.dlat = d.lat; S.dlon = d.lon; $('destino-ok').style.display = 'block'; }
+  inp.title = d.display;
   if (S.olat && S.dlat) {
-    $('btn-calcular-ruta').disabled = false;
     actualizarMapa([[S.olat, S.olon], [S.dlat, S.dlon]], true);
-    calcularRuta();
+    if (!soloBuscar) calcularRuta();
   }
+  return true;
 }
 function resetAddr(tipo) {
   if (tipo === 'origen') { S.olat = null; $('origen-ok').style.display = 'none'; }
   else { S.dlat = null; $('destino-ok').style.display = 'none'; }
-  $('btn-calcular-ruta').disabled = true;
+  S.dist_km = 0;
+  $('btn-calcular-ruta').disabled = !($('origen').value.trim() && $('destino').value.trim());
 }
 
 // ── Ruta ──────────────────────────────────────────────────────────────────
 let rutaEnCurso = null;
 function calcularRuta() {
-  if (!S.olat || !S.dlat) { alert('Busca primero el origen y el destino'); return Promise.resolve(); }
   if (rutaEnCurso) return rutaEnCurso;
   return (rutaEnCurso = calcularRuta_().finally(() => { rutaEnCurso = null; }));
 }
 async function calcularRuta_() {
   $('loader-ruta').style.display = 'block'; $('btn-calcular-ruta').disabled = true; $('error-ruta').style.display = 'none';
+  // Busca las direcciones que falten (ya no hace falta tocar la lupa antes).
+  const okO = S.olat || await geocodificar('origen', true), okD = S.dlat || await geocodificar('destino', true);
+  if (!okO || !okD) {
+    $('loader-ruta').style.display = 'none'; $('btn-calcular-ruta').disabled = false;
+    if ($('error-ruta').style.display !== 'block') { $('error-ruta').textContent = '⚠️ Escribe la dirección de origen y la de destino.'; $('error-ruta').style.display = 'block'; }
+    return;
+  }
   const ejes = S.unidad === 35 ? 2 : 3;
   let d;
   try { d = await adm('ruta', { olat: S.olat, olon: S.olon, dlat: S.dlat, dlon: S.dlon, ejes }); }
@@ -821,7 +835,7 @@ function irPaso(n) {
 async function generarCotizacion() {
   const ejes = S.unidad === 35 ? 2 : 3;
   if (!S.dist_km || (S.ejesRuta && S.ejesRuta !== ejes)) {   // sin ruta, o cambió el camión: recalcular casetas
-    if (S.olat && S.dlat) await calcularRuta();
+    if ($('origen').value.trim() && $('destino').value.trim()) await calcularRuta();
     if (!S.dist_km) { $('aviso-sin-ruta').style.display = 'block'; return; }
   }
   $('aviso-sin-ruta').style.display = 'none';
@@ -1003,8 +1017,8 @@ function nuevaCotizacion() {
   actualizarMapa(null); mapa.setView([23.5,-102.5],5);
   selUnidad(35); selector.limpiar(); limpiarModalIA(); irPaso(1);
 }
-$('origen').addEventListener('keydown', e => { if (e.key === 'Enter') geocodificar('origen'); });
-$('destino').addEventListener('keydown', e => { if (e.key === 'Enter') geocodificar('destino'); });
+$('origen').addEventListener('keydown', e => { if (e.key === 'Enter') { if ($('destino').value.trim()) calcularRuta(); else $('destino').focus(); } });
+$('destino').addEventListener('keydown', e => { if (e.key === 'Enter') calcularRuta(); });
 
 // ── Inventario (sin IA de pago) ───────────────────────────────────────────
 let iaArchivos = [], iaDatos = null, selM3 = 0, selItems = [];
@@ -1101,8 +1115,7 @@ function aplicarDatosIA() {
   if (o) { $('origen').value = o; resetAddr('origen'); }
   if (de) { $('destino').value = de; resetAddr('destino'); }
   cerrarModalIA();
-  if (o) geocodificar('origen');
-  if (de) geocodificar('destino');
+  if ($('origen').value.trim() && $('destino').value.trim()) calcularRuta();
 }
 </script>
 </body>
