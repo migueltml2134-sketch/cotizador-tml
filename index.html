@@ -7,7 +7,7 @@
 <title>Cotizador TML</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="inventario.js?v=20261027104822"></script>
+<script src="inventario.js?v=20261027105801"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -98,6 +98,7 @@ input, select, textarea {
   -webkit-appearance: none;
 }
 input[type=range] { min-height: auto; padding: 0; background: none; border: none; }
+input[type=checkbox] { -webkit-appearance: auto; appearance: auto; width: 22px; height: 22px; min-height: auto; padding: 0; flex-shrink: 0; accent-color: var(--primary); cursor: pointer; }
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
 textarea { min-height: 80px; resize: vertical; }
 
@@ -340,7 +341,7 @@ textarea { min-height: 80px; resize: vertical; }
 .tabla-scroll { overflow-x: auto; }
 .oculto { display: none !important; }
 </style>
-<script>(function(){var V='20261027104822';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+<script>(function(){var V='20261027105801';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
 </head>
 <body>
 
@@ -466,10 +467,14 @@ textarea { min-height: 80px; resize: vertical; }
         <div class="section" id="sec-extras">
           <div class="extra-block" style="background:#f5f3ff;border:1.5px solid #c4b5fd;">
             <label style="margin-top:0;display:flex;align-items:center;gap:8px;cursor:pointer">
-              <input type="checkbox" id="recoleccion-adicional" style="width:auto;min-height:auto">
+              <input type="checkbox" id="recoleccion-adicional" onchange="toggleRecoleccion()">
               <span style="font-weight:700;font-size:.85rem">🚚 ¿Recolección en un punto adicional?</span>
             </label>
-            <div style="font-size:.76rem;color:#5b21b6;margin-top:4px">Se cobra una maniobra de carga extra (según la unidad)</div>
+            <div style="font-size:.76rem;color:#5b21b6;margin-top:4px">Se cobra una maniobra de carga extra: $1,500 camioneta · $2,500 camión</div>
+            <div id="wrap-recoleccion" style="display:none;margin-top:8px">
+              <label style="margin-top:0" for="recoleccion-monto">Monto de la recolección ($) — cámbialo si es otro</label>
+              <input type="number" id="recoleccion-monto" min="0" step="100">
+            </div>
           </div>
 
           <div class="extra-block" style="background:#fffbeb;border:1.5px solid #fde68a;">
@@ -712,11 +717,17 @@ function actualizarMapa(coords, esVistaPrevia) {
   if (rutaLayer) { mapa.removeLayer(rutaLayer); rutaLayer = null; }
   markers.forEach(m => mapa.removeLayer(m)); markers = [];
   if (!coords || coords.length === 0) return;
-  const estilo = esVistaPrevia ? { color: '#9ca3af', weight: 3, opacity: .8, dashArray: '6 8' } : { color: '#1a56db', weight: 4, opacity: .85 };
+  const estilo = esVistaPrevia ? { color: '#9ca3af', weight: 3, opacity: .8, dashArray: '6 8' } : { color: '#1a56db', weight: 4, opacity: .85, smoothFactor: 0.5 };
   rutaLayer = L.polyline(coords, estilo).addTo(mapa);
   markers.push(L.marker(coords[0], { icon: L.divIcon({ html: '🟢', className: '', iconSize: [24,24] }) }).addTo(mapa).bindPopup('Origen'));
   markers.push(L.marker(coords[coords.length-1], { icon: L.divIcon({ html: '🔴', className: '', iconSize: [24,24] }) }).addTo(mapa).bindPopup('Destino'));
-  mapa.fitBounds(rutaLayer.getBounds(), { padding: [30, 30] });
+  ajustarMapa();
+}
+/** Leaflet no puede medir el mapa mientras está escondido (otro paso): se reajusta al volver a mostrarlo. */
+function ajustarMapa() {
+  if (!mapa || !$('map').offsetWidth) return;
+  mapa.invalidateSize();
+  if (rutaLayer) mapa.fitBounds(rutaLayer.getBounds(), { padding: [30, 30] });
 }
 
 // ── Geocodificación ───────────────────────────────────────────────────────
@@ -751,11 +762,11 @@ function resetAddr(tipo) {
 
 // ── Ruta ──────────────────────────────────────────────────────────────────
 let rutaEnCurso = null;
-function calcularRuta() {
+function calcularRuta(sinNavegar) {
   if (rutaEnCurso) return rutaEnCurso;
-  return (rutaEnCurso = calcularRuta_().finally(() => { rutaEnCurso = null; }));
+  return (rutaEnCurso = calcularRuta_(sinNavegar === true).finally(() => { rutaEnCurso = null; }));
 }
-async function calcularRuta_() {
+async function calcularRuta_(sinNavegar) {
   $('loader-ruta').style.display = 'block'; $('btn-calcular-ruta').disabled = true; $('error-ruta').style.display = 'none';
   // Busca las direcciones que falten (ya no hace falta tocar la lupa antes).
   const okO = S.olat || await geocodificar('origen', true), okD = S.dlat || await geocodificar('destino', true);
@@ -777,7 +788,8 @@ async function calcularRuta_() {
   S.dist_km = d.dist_km; S.dur_min = d.dur_min; S.casetas = d.casetas; S.casetas_aviso = d.casetas_aviso || null; S.ejesRuta = ejes; S.casetasManual = null;
   $('aviso-ejes').style.display = 'none';
   if (d.ruta_aviso) { $('error-ruta').textContent = '💾 ' + d.ruta_aviso; $('error-ruta').style.display = 'block'; }
-  actualizarMapa(d.coords); mostrarRutaInfo(); mostrarCasetasPanel(); irPaso(2);
+  actualizarMapa(d.coords); mostrarRutaInfo(); mostrarCasetasPanel();
+  if (!sinNavegar) irPaso(2);
 }
 function mostrarRutaInfo() {
   $('ruta-km').textContent = S.dist_km.toFixed(0) + ' km';
@@ -821,11 +833,23 @@ function mostrarCasetasPanel() {
   ponerCasetasManual(S.casetasManual == null ? '' : String(S.casetasManual));
 }
 
+function toggleRecoleccion() {
+  const on = $('recoleccion-adicional').checked;
+  $('wrap-recoleccion').style.display = on ? 'block' : 'none';
+  if (on && $('recoleccion-monto').value === '') $('recoleccion-monto').value = S.unidad === 35 ? 1500 : 2500;
+  if (!on) $('recoleccion-monto').value = '';
+}
+
 // ── Unidad ────────────────────────────────────────────────────────────────
 function selUnidad(u) {
   S.unidad = u;
   $('card35').classList.toggle('selected', u===35); $('card85').classList.toggle('selected', u===85);
-  $('aviso-ejes').style.display = S.ejesRuta && S.ejesRuta !== (u === 35 ? 2 : 3) ? 'block' : 'none';
+  const cambia = S.ejesRuta && S.ejesRuta !== (u === 35 ? 2 : 3);
+  $('aviso-ejes').style.display = cambia ? 'block' : 'none';
+  if (cambia && S.olat && S.dlat) {
+    $('aviso-ejes').textContent = '⏳ Cambió el camión: recalculando las casetas con la tarifa de ' + (u === 35 ? '2' : '3') + ' ejes...';
+    calcularRuta(true).then(() => { $('aviso-ejes').style.display = 'none'; });
+  }
 }
 function actualizarVol(v, desdeNumero) {
   v = Math.max(0, parseFloat(v) || 0);
@@ -842,14 +866,23 @@ function actualizarVol(v, desdeNumero) {
 function irPaso(n) {
   ['sec-origen','sec-unidad','sec-extras','sec-cotizacion'].forEach((id,i) => $(id).classList.toggle('active', i===n-1));
   for (let i=1;i<=4;i++) { const t = $('tab'+i); t.classList.remove('active','done'); if (i < n) t.classList.add('done'); if (i === n) t.classList.add('active'); }
+  if (n === 1) setTimeout(ajustarMapa, 30);
 }
 
 // ── Cotización ────────────────────────────────────────────────────────────
 async function generarCotizacion() {
-  const ejes = S.unidad === 35 ? 2 : 3;
-  if (!S.dist_km || (S.ejesRuta && S.ejesRuta !== ejes)) {   // sin ruta, o cambió el camión: recalcular casetas
-    if ($('origen').value.trim() && $('destino').value.trim()) await calcularRuta();
+  const ejes = S.unidad === 35 ? 2 : 3, b = $('btn-generar');
+  if (b.disabled) return;
+  b.disabled = true; b.textContent = '⏳ Generando...';
+  try { await generarCotizacion_(ejes); } finally { b.disabled = false; b.textContent = '🧮 Generar cotización'; }
+}
+async function generarCotizacion_(ejes) {
+  if (rutaEnCurso || !S.dist_km || (S.ejesRuta && S.ejesRuta !== ejes)) {   // sin ruta, o cambió el camión: recalcular casetas
+    $('btn-generar').textContent = '⏳ Calculando ruta y casetas...';
+    if (rutaEnCurso) await rutaEnCurso;
+    if ((!S.dist_km || S.ejesRuta !== ejes) && $('origen').value.trim() && $('destino').value.trim()) await calcularRuta(true);
     if (!S.dist_km) { $('aviso-sin-ruta').style.display = 'block'; return; }
+    $('btn-generar').textContent = '⏳ Generando...';
   }
   $('aviso-sin-ruta').style.display = 'none';
   if (!S.casetas.length && S.casetasManual == null && S.dist_km > 60
@@ -858,16 +891,15 @@ async function generarCotizacion() {
   const payload = {
     unidad: S.unidad, dist_km: S.dist_km, casetas: casetasParaCotizar(), m3_estimado: S.m3,
     recoleccion_adicional: $('recoleccion-adicional').checked,
+    recoleccion_monto: $('recoleccion-adicional').checked && $('recoleccion-monto').value !== '' ? parseFloat($('recoleccion-monto').value) || 0 : null,
     piso_carga: num('piso-carga'), piso_descarga: num('piso-descarga'), vuelo_piezas: num('vuelo-piezas'), vuelo_pisos: num('vuelo-pisos'),
     acarreo_metros: num('acarreo-metros'), acarreo_camioneta_m3: num('acarreo-camioneta-m3'),
     pianos_vertical: num('piano-vertical'), pianos_media_cola: num('piano-media-cola'), pianos_cola: num('piano-cola'), cubiertas_especiales: num('cubiertas-especiales'),
     cf_chica: num('cf-chica'), cf_mediana: num('cf-mediana'), cf_grande: num('cf-grande'),
     cajas_libros: num('cajas-libros'), cajas_varios: num('cajas-varios'), cajas_ropero: num('cajas-ropero'), roperos_acostados: num('roperos-acostados'), cajas_barrica: num('cajas-barrica'),
   };
-  const b = $('btn-generar'); b.disabled = true;
   try { mostrarCotizacion(await adm('cotizar', payload)); mostrarCasetasPanel(); irPaso(4); }
   catch (e) { alert('Error al cotizar: ' + e); }
-  b.disabled = false;
 }
 function fmx(n) { return '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0}); }
 
@@ -1027,7 +1059,7 @@ function nuevaCotizacion() {
   $('casetas-panel').innerHTML = '<div style="color:var(--gray-400);text-align:center;padding:40px 0;font-size:.9rem">Ingresa origen y destino para ver las casetas de la ruta</div>';
   ['piso-carga','piso-descarga','vuelo-piezas','vuelo-pisos','acarreo-metros','acarreo-camioneta-m3','piano-vertical','piano-media-cola','piano-cola','cubiertas-especiales',
    'cf-chica','cf-mediana','cf-grande','cajas-libros','cajas-varios','cajas-ropero','roperos-acostados','cajas-barrica'].forEach(id => $(id).value = 0);
-  $('recoleccion-adicional').checked = false;
+  $('recoleccion-adicional').checked = false; toggleRecoleccion();
   $('vol-slider').value = 20; actualizarVol(20);
   actualizarMapa(null); mapa.setView([23.5,-102.5],5);
   selUnidad(35); selector.limpiar(); limpiarModalIA(); irPaso(1);
