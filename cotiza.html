@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Cotiza tu mudanza — Mudanzas TML</title>
+<script src="inventario.js?v=20261027093549"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #1a56db;
+  --primary-dark: #1e429f;
+  --accent: #ff6b35;
+  --success: #0e9f6e;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-400: #9ca3af;
+  --gray-600: #4b5563;
+  --gray-800: #1f2937;
+}
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--gray-50);
+  color: var(--gray-800);
+  min-height: 100vh;
+}
+header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff; padding: 22px 16px; text-align: center;
+}
+header .logo { font-size: 2.2rem; }
+header h1 { font-size: 1.2rem; font-weight: 800; margin-top: 4px; }
+header p { font-size: .82rem; opacity: .85; margin-top: 4px; }
+
+.wrap { max-width: 480px; margin: 0 auto; padding: 16px 14px 40px; }
+.card { background: #fff; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,.08); padding: 20px 18px; }
+
+.pasos { display: flex; justify-content: center; gap: 6px; margin-bottom: 18px; }
+.punto { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-200); transition: .2s; }
+.punto.activo { background: var(--primary); width: 20px; border-radius: 4px; }
+.punto.hecho { background: var(--success); }
+
+.section { display: none; }
+.section.active { display: block; }
+
+h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
+.desc { font-size: .82rem; color: var(--gray-600); margin-bottom: 16px; }
+
+label { display: block; font-size: .84rem; font-weight: 600; color: var(--gray-600); margin: 14px 0 5px; }
+label:first-of-type { margin-top: 0; }
+input, textarea, select {
+  width: 100%; padding: 12px 14px; border: 1.5px solid var(--gray-200);
+  border-radius: 9px; font-size: .92rem; background: var(--gray-50);
+  -webkit-appearance: none;
+}
+input:focus, textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
+textarea { min-height: 90px; resize: vertical; }
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; background: var(--gray-50); border: 1.5px solid var(--gray-200);
+  border-radius: 9px; margin-top: 10px;
+}
+.toggle-row span { font-size: .86rem; font-weight: 600; color: var(--gray-800); }
+.switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider-tg { position: absolute; inset: 0; background: var(--gray-200); border-radius: 20px; cursor: pointer; transition: .2s; }
+.slider-tg::before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+.switch input:checked + .slider-tg { background: var(--success); }
+.switch input:checked + .slider-tg::before { transform: translateX(20px); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 13px; border-radius: 10px; border: none;
+  font-size: .95rem; font-weight: 700; cursor: pointer; margin-top: 18px;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-outline { background: #fff; border: 2px solid var(--gray-200); color: var(--gray-600); margin-top: 10px; }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-row { display: flex; gap: 10px; }
+.btn-row .btn { margin-top: 0; }
+
+.drop-zone {
+  border: 2px dashed var(--gray-200); border-radius: 10px; padding: 24px 14px;
+  text-align: center; cursor: pointer; background: var(--gray-50); margin-top: 4px;
+}
+.drop-zone:hover { border-color: var(--primary); }
+.drop-zone .ic { font-size: 2rem; }
+.drop-zone p { font-size: .82rem; color: var(--gray-600); margin-top: 6px; }
+.preview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+.preview-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; }
+
+.alert { padding: 10px 13px; border-radius: 8px; font-size: .82rem; margin-top: 12px; line-height: 1.5; }
+.alert-info { background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe; }
+.alert-success { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+.alert-warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+
+.loader { display: none; text-align: center; padding: 20px; color: var(--gray-600); font-size: .85rem; }
+.spinner {
+  width: 30px; height: 30px; border: 4px solid var(--gray-200);
+  border-top-color: var(--primary); border-radius: 50%;
+  animation: spin .8s linear infinite; margin: 0 auto 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.resultado { text-align: center; padding: 10px 0; }
+.resultado .folio { font-size: .8rem; color: var(--gray-400); }
+.resultado .total { font-size: 2.4rem; font-weight: 800; color: var(--primary); margin: 8px 0; }
+.resultado .vigencia { font-size: .82rem; color: var(--gray-600); }
+
+footer { text-align: center; font-size: .74rem; color: var(--gray-400); padding: 20px 16px; }
+.inv-grupo { border: 1.5px solid var(--gray-200); border-radius: 8px; margin-bottom: 6px; }
+.inv-grupo summary { padding: 10px 12px; font-weight: 700; font-size: .85rem; cursor: pointer; }
+.inv-fila { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; border-top: 1px solid var(--gray-100); font-size: .83rem; gap: 8px; }
+.inv-fila small { color: var(--gray-400); }
+.inv-ctl { display: flex; align-items: center; gap: 8px; }
+.inv-ctl button { width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid var(--gray-200); background: #fff; font-size: 1.1rem; cursor: pointer; }
+.inv-ctl b { min-width: 20px; text-align: center; }
+.tabs-inv { display: flex; gap: 6px; margin-bottom: 12px; }
+.tabs-inv button { flex: 1; min-height: 40px; border: 1.5px solid var(--gray-200); background: #fff; border-radius: 8px; font-weight: 600; font-size: .78rem; cursor: pointer; color: var(--gray-600); }
+.tabs-inv button.on { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+.sel-total { background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 8px; padding: 10px 12px; font-weight: 700; color: var(--primary); margin-top: 10px; text-align: center; }
+</style>
+<script>(function(){var V='20261027093549';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+</head>
+<body>
+
+<header>
+  <div class="logo">🚛</div>
+  <h1>Mudanzas TML</h1>
+  <p>Cotiza tu mudanza en unos minutos</p>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <div class="pasos">
+      <div class="punto activo" id="pt1"></div><div class="punto" id="pt2"></div><div class="punto" id="pt3"></div><div class="punto" id="pt4"></div>
+    </div>
+
+    <!-- PASO 1: DIRECCIONES -->
+    <div class="section active" id="sec1">
+      <h2>📍 ¿De dónde a dónde te mudas?</h2>
+      <div class="desc">Escribe la dirección completa para calcular tu ruta</div>
+      <label>Dirección actual</label>
+      <input type="text" id="origen" placeholder="Ej: Av. Insurgentes 123, CDMX" maxlength="200">
+      <label>Dirección a la que te mudas</label>
+      <input type="text" id="destino" placeholder="Ej: Calle Juárez 50, Guadalajara" maxlength="200">
+      <label>Fecha estimada (opcional)</label>
+      <input type="text" id="fecha-carga" placeholder="Ej: 15 de agosto" maxlength="60">
+      <div id="error-1" class="alert alert-warn" style="display:none"></div>
+      <div id="loader-1" class="loader"><div class="spinner"></div>Buscando direcciones y calculando tu ruta...</div>
+      <button class="btn btn-primary" id="btn-paso1" onclick="irASiguiente()">Continuar →</button>
+    </div>
+
+    <!-- PASO 2: INVENTARIO -->
+    <div class="section" id="sec2">
+      <h2>📦 ¿Qué vas a mudar?</h2>
+      <div class="desc">Marca tus muebles o escribe la lista — calculamos el tamaño del camión</div>
+      <div class="tabs-inv">
+        <button class="on" id="tb-lista" onclick="tabInv('lista')">🪑 Elegir muebles</button>
+        <button id="tb-texto" onclick="tabInv('texto')">✍️ Escribir lista</button>
+        <button id="tb-fotos" onclick="tabInv('fotos')">📷 Foto de lista</button>
+      </div>
+      <div id="pn-lista">
+        <div id="selector-muebles"></div>
+        <div class="sel-total" id="sel-total">0 m³</div>
+      </div>
+      <div id="pn-texto" style="display:none">
+        <label style="margin-top:0">Escribe o pega la lista de tus cosas</label>
+        <textarea id="texto-inventario" maxlength="5000" placeholder="Ej: 1 sofá de 3 plazas, cama queen, refrigerador, 2 roperos..."></textarea>
+      </div>
+      <div id="pn-fotos" style="display:none">
+        <div class="drop-zone" onclick="document.getElementById('file-input').click()">
+          <div class="ic">📷</div>
+          <p>Toca para subir una foto o captura de tu lista escrita (hasta 3)</p>
+        </div>
+        <input type="file" id="file-input" accept="image/*" multiple style="display:none" onchange="agregarArchivos(this.files)">
+        <div class="preview-grid" id="preview-grid"></div>
+      </div>
+      <div id="loader-2" class="loader"><div class="spinner"></div>Calculando el tamaño de tu mudanza...</div>
+      <div id="resultado-ia" class="alert alert-success" style="display:none"></div>
+      <div id="error-2" class="alert alert-warn" style="display:none"></div>
+      <button class="btn btn-primary" id="btn-paso2" onclick="analizarInventario()">Calcular tamaño →</button>
+      <button class="btn btn-outline" onclick="irAPaso(3)">Prefiero no decirlo, continuar</button>
+    </div>
+
+    <!-- PASO 3: DETALLES -->
+    <div class="section" id="sec3">
+      <h2>🏠 Unos detalles rápidos</h2>
+      <div class="desc">Esto nos ayuda a calcular bien tu precio</div>
+      <label style="margin-top:0">¿Tu casa actual tiene elevador?</label>
+      <div class="toggle-row"><span>Sí hay elevador</span>
+        <label class="switch"><input type="checkbox" id="elevador-origen" onchange="actualizarPisos()"><span class="slider-tg"></span></label></div>
+      <div id="wrap-piso-origen"><label>¿En qué piso vives? (0 = planta baja)</label><input type="number" id="piso-origen-num" min="0" max="60" placeholder="Ej: 3"></div>
+      <label>¿El nuevo lugar tiene elevador?</label>
+      <div class="toggle-row"><span>Sí hay elevador</span>
+        <label class="switch"><input type="checkbox" id="elevador-destino" onchange="actualizarPisos()"><span class="slider-tg"></span></label></div>
+      <div id="wrap-piso-destino"><label>¿En qué piso queda? (0 = planta baja)</label><input type="number" id="piso-destino-num" min="0" max="60" placeholder="Ej: 2"></div>
+      <div class="toggle-row" style="margin-top:18px"><span>📦 ¿Necesitas ayuda para empacar?</span>
+        <label class="switch"><input type="checkbox" id="necesita-empaque"><span class="slider-tg"></span></label></div>
+      <label>Algo especial que debamos saber (piano, caja fuerte, etc.)</label>
+      <textarea id="notas-especiales" placeholder="Opcional" maxlength="500"></textarea>
+      <button class="btn btn-primary" onclick="irAPaso(4)">Continuar →</button>
+    </div>
+
+    <!-- PASO 4: CONTACTO -->
+    <div class="section" id="sec4">
+      <h2>👤 ¿Cómo te contactamos?</h2>
+      <div class="desc">Para enviarte tu cotización</div>
+      <label style="margin-top:0">Nombre completo</label>
+      <input type="text" id="cliente-nombre" placeholder="Tu nombre" maxlength="80">
+      <label>WhatsApp</label>
+      <input type="tel" id="cliente-tel" placeholder="55 0000 0000" maxlength="20">
+      <div id="error-4" class="alert alert-warn" style="display:none"></div>
+      <div id="loader-4" class="loader"><div class="spinner"></div>Generando tu cotización...</div>
+      <button class="btn btn-accent" id="btn-cotizar" onclick="generarCotizacionPublica()">🧮 Ver mi cotización</button>
+    </div>
+
+    <!-- RESULTADO -->
+    <div class="section" id="sec-resultado">
+      <div class="resultado">
+        <div style="font-size:2.4rem">✅</div>
+        <h2 style="margin-top:8px" id="res-titulo">¡Listo!</h2>
+        <div class="folio" id="res-folio"></div>
+        <div class="total" id="res-total"></div>
+        <div class="vigencia" id="res-vigencia"></div>
+        <div class="alert alert-info" style="text-align:left;margin-top:16px">Este precio es un estimado según lo que nos contaste. El precio final se confirma con una breve visita — sin compromiso.</div>
+      </div>
+      <div id="error-pdf" class="alert alert-warn" style="display:none"></div>
+      <button class="btn btn-accent" id="btn-pdf" onclick="descargarPdfPublico()">📄 Descargar mi cotización (PDF)</button>
+      <button class="btn btn-primary" id="btn-wa" style="display:none" onclick="agendarPorWhatsApp()">📲 Agendar visita por WhatsApp</button>
+      <button class="btn btn-outline" onclick="location.reload()">Hacer otra cotización</button>
+    </div>
+  </div>
+  <footer id="pie">Mudanzas TML</footer>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbw76QcJ1KMxTnVj8OxVOGHphHOPjT_87bwSTHoMetI3oNJ0bluNB3w2wXs2IAoKdZvciQ/exec';
+const S = { token: null, telefono: '', unidad: 35, m3: 20, iaArchivos: [], selM3: 0, selItems: [], tab: 'lista' };
+const $ = id => document.getElementById(id);
+function api(fn, ...args) {
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: fn, args: args }) })
+    .then(r => r.json(), () => { throw 'Sin conexión a internet. Intenta de nuevo.'; })
+    .then(j => { if (!j.ok) throw j.error || 'Error'; return j.r; });
+}
+function limpiarTelWA(tel) {
+  let t = (tel || '').replace(/[\s\-\(\)\+\.]/g, '');
+  if (t.length === 10) t = '52' + t; else if (t.startsWith('1') && t.length === 11) t = '52' + t.slice(1);
+  return t;
+}
+function agendarPorWhatsApp() {
+  const folio = $('res-folio').textContent || '';
+  window.open(`https://wa.me/${limpiarTelWA(S.telefono)}?text=${encodeURIComponent(`Hola, quiero agendar mi visita de estimación. Mi cotización es ${folio}.`)}`, '_blank');
+}
+function mostrarPaso(n) {
+  ['sec1','sec2','sec3','sec4','sec-resultado'].forEach((id, i) => $(id).classList.toggle('active', i === n - 1));
+  for (let i = 1; i <= 4; i++) { const p = $('pt' + i); p.classList.remove('activo', 'hecho'); if (i < n) p.classList.add('hecho'); if (i === n) p.classList.add('activo'); }
+  window.scrollTo(0, 0);
+}
+function irAPaso(n) { mostrarPaso(n); }
+const sesionLista = api('pubSesion').then(r => {
+  S.token = r.token; S.telefono = r.telefono || '';
+  if (S.telefono) { $('pie').textContent = 'Mudanzas TML · ' + S.telefono; $('btn-wa').style.display = ''; }
+}, e => { $('error-1').textContent = 'No se pudo conectar: ' + e; $('error-1').style.display = 'block'; });
+
+// ── Paso 1 ────────────────────────────────────────────────────────────────
+async function irASiguiente() {
+  const o = $('origen').value.trim(), d = $('destino').value.trim(), err = $('error-1');
+  err.style.display = 'none';
+  if (!o || !d) { err.textContent = 'Escribe ambas direcciones para continuar.'; err.style.display = 'block'; return; }
+  $('loader-1').style.display = 'block'; $('btn-paso1').disabled = true;
+  try {
+    await sesionLista; if (!S.token) throw 'Recarga la página e intenta de nuevo.';
+    const [go, gd] = await Promise.all([api('pubGeocode', S.token, o), api('pubGeocode', S.token, d)]);
+    await api('pubRuta', S.token, { olat: go.lat, olon: go.lon, dlat: gd.lat, dlon: gd.lon, unidad: S.unidad });
+    mostrarPaso(2);
+  } catch (e) { err.textContent = e; err.style.display = 'block'; }
+  $('loader-1').style.display = 'none'; $('btn-paso1').disabled = false;
+}
+
+// ── Paso 2 ────────────────────────────────────────────────────────────────
+TMLInventario.armarSelector($('selector-muebles'), (m3, items) => { S.selM3 = m3; S.selItems = items; $('sel-total').textContent = m3 + ' m³ · ' + items.reduce((s, i) => s + i.cantidad, 0) + ' piezas'; });
+function tabInv(t) { S.tab = t; ['lista','texto','fotos'].forEach(x => { $('pn-' + x).style.display = x === t ? 'block' : 'none'; $('tb-' + x).classList.toggle('on', x === t); }); }
+function agregarArchivos(files) {
+  for (const f of files) { if (!f.type.startsWith('image/')) continue; if (S.iaArchivos.length >= 3) break; S.iaArchivos.push(f); }
+  const grid = $('preview-grid'); grid.innerHTML = '';
+  S.iaArchivos.forEach(f => { const img = document.createElement('img'); img.src = URL.createObjectURL(f); grid.appendChild(img); });
+}
+function usarM3(m3, texto) {
+  S.m3 = Math.min(Math.max(Math.round(m3), 5), 85); S.unidad = S.m3 <= 35 ? 35 : 85;
+  $('resultado-ia').textContent = `📦 Calculamos ~${S.m3} m³ — te asignamos un camión de ${S.unidad} m³. Es un estimado inicial; lo ajustamos contigo en la visita.`;
+  $('resultado-ia').style.display = 'block';
+  S.inventarioTexto = texto || '';
+  setTimeout(() => irAPaso(3), 1200);
+}
+async function analizarInventario() {
+  const err = $('error-2'); err.style.display = 'none';
+  const falla = m => { err.textContent = m; err.style.display = 'block'; };
+  if (S.tab === 'lista') {
+    if (!S.selM3) return falla('Marca tus muebles con el botón +, o elige otra opción.');
+    return usarM3(S.selM3, S.selItems.map(i => i.cantidad + ' ' + i.articulo).join(', '));
+  }
+  let texto = $('texto-inventario').value.trim();
+  if (S.tab === 'fotos') {
+    if (!S.iaArchivos.length) return falla('Sube la foto de tu lista.');
+    $('loader-2').style.display = 'block'; $('btn-paso2').disabled = true;
+    try { const imgs = await Promise.all(S.iaArchivos.map(TMLInventario.fotoABase64)); texto = (await api('pubLeer', S.token, imgs)).texto || ''; }
+    catch (e) { $('loader-2').style.display = 'none'; $('btn-paso2').disabled = false; return falla(e); }
+    $('loader-2').style.display = 'none'; $('btn-paso2').disabled = false;
+  }
+  if (!texto) return falla(S.tab === 'fotos' ? 'No pudimos leer texto en la foto. Mejor elige tus muebles de la lista.' : 'Escribe qué vas a mudar.');
+  const d = TMLInventario.analizarTexto(texto);
+  if (!d.m3_estimado) return falla('No reconocimos los muebles. Intenta elegirlos de la lista (pestaña "Elegir muebles").');
+  if (d.cliente_nombre && !$('cliente-nombre').value) $('cliente-nombre').value = d.cliente_nombre;
+  if (d.cliente_tel && !$('cliente-tel').value) $('cliente-tel').value = d.cliente_tel;
+  usarM3(d.m3_estimado, (d.inventario || []).map(i => i.cantidad + ' ' + i.articulo).join(', '));
+}
+
+// ── Paso 3 / 4 ────────────────────────────────────────────────────────────
+function actualizarPisos() {
+  $('wrap-piso-origen').style.display = $('elevador-origen').checked ? 'none' : 'block';
+  $('wrap-piso-destino').style.display = $('elevador-destino').checked ? 'none' : 'block';
+}
+function fmx(n) { return '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0}); }
+async function generarCotizacionPublica() {
+  const nombre = $('cliente-nombre').value.trim(), tel = $('cliente-tel').value.trim(), err = $('error-4');
+  err.style.display = 'none';
+  if (!nombre || tel.replace(/\D/g, '').length < 10) { err.textContent = 'Escribe tu nombre y tu WhatsApp (10 dígitos) para ver tu cotización.'; err.style.display = 'block'; return; }
+  $('loader-4').style.display = 'block'; $('btn-cotizar').disabled = true;
+  const notas = [
+    $('necesita-empaque').checked ? 'Cliente pidió ayuda con empaque.' : '',
+    $('notas-especiales').value.trim(),
+    S.inventarioTexto ? 'Inventario: ' + S.inventarioTexto + ` (≈${S.m3} m³)` : '',
+  ].filter(Boolean).join(' ');
+  try {
+    const d = await api('pubCotizar', S.token, {
+      unidad: S.unidad,
+      piso_carga: $('elevador-origen').checked ? 0 : (parseInt($('piso-origen-num').value) || 0),
+      piso_descarga: $('elevador-destino').checked ? 0 : (parseInt($('piso-destino-num').value) || 0),
+      cliente_nombre: nombre, cliente_tel: tel, origen_texto: $('origen').value.trim(), destino_texto: $('destino').value.trim(),
+      fecha_carga: $('fecha-carga').value.trim(), notas: notas,
+    });
+    $('res-folio').textContent = d.folio; $('res-total').textContent = fmx(d.total);
+    $('res-vigencia').textContent = `Cotización válida hasta el ${d.valido_hasta}`;
+    $('res-titulo').textContent = `¡Listo, ${nombre}!`;
+    mostrarPaso(5);
+  } catch (e) { err.textContent = e; err.style.display = 'block'; }
+  $('loader-4').style.display = 'none'; $('btn-cotizar').disabled = false;
+}
+async function descargarPdfPublico() {
+  const btn = $('btn-pdf'), err = $('error-pdf');
+  err.style.display = 'none'; btn.disabled = true; btn.textContent = '⏳ Generando tu PDF...';
+  try {
+    const r = await api('pubPdf', S.token), bin = atob(r.b64), arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([arr], { type: 'application/pdf' })), a = document.createElement('a');
+    a.href = url; a.download = r.nombre; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch (e) { err.textContent = e; err.style.display = 'block'; }
+  btn.disabled = false; btn.textContent = '📄 Descargar mi cotización (PDF)';
+}
+</script>
+</body>
+</html>

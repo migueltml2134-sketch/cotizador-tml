@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Cotizador TML</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="inventario.js?v=20261027093549"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #1a56db;
+  --primary-dark: #1e429f;
+  --accent: #ff6b35;
+  --success: #0e9f6e;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-400: #9ca3af;
+  --gray-600: #4b5563;
+  --gray-800: #1f2937;
+  --shadow: 0 4px 24px rgba(0,0,0,.10);
+  --radius: 12px;
+  --touch: 48px;
+}
+html { -webkit-text-size-adjust: 100%; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--gray-50); color: var(--gray-800); min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+
+/* ── HEADER ─────────────────────────────────────────────────────────────── */
+header {
+  background: var(--primary); color: #fff;
+  padding: 0 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 60px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  position: sticky; top: 0; z-index: 100;
+}
+header h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: -.3px; display: flex; align-items: center; gap: 8px; }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.header-badge { font-size: .78rem; opacity: .75; }
+.btn-logout {
+  background: rgba(255,255,255,.15); color: #fff;
+  border: 1.5px solid rgba(255,255,255,.3);
+  border-radius: 8px; padding: 6px 12px;
+  font-size: .8rem; font-weight: 600; text-decoration: none;
+  white-space: nowrap; min-height: 36px; display: flex; align-items: center;
+}
+
+/* ── LAYOUT ─────────────────────────────────────────────────────────────── */
+.container {
+  max-width: 1200px; margin: 0 auto;
+  padding: 16px 12px 24px;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 16px;
+}
+
+/* ── CARDS ──────────────────────────────────────────────────────────────── */
+.card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.card-header {
+  background: var(--primary); color: #fff;
+  padding: 12px 18px; font-weight: 600; font-size: .92rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-body { padding: 16px; }
+
+/* ── STEPS ──────────────────────────────────────────────────────────────── */
+.steps { display: flex; margin-bottom: 20px; border-bottom: 2px solid var(--gray-200); }
+.step {
+  flex: 1; text-align: center; padding: 10px 2px 9px;
+  font-size: .75rem; font-weight: 600;
+  color: var(--gray-400);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer; transition: .2s;
+  line-height: 1.3;
+}
+.step .step-num { display: block; font-size: .9rem; margin-bottom: 2px; }
+.step.active { color: var(--primary); border-color: var(--primary); }
+.step.done { color: var(--success); border-color: var(--success); }
+
+/* ── FORM ───────────────────────────────────────────────────────────────── */
+.section { display: none; }
+.section.active { display: block; }
+label {
+  display: block; font-size: .82rem; font-weight: 600;
+  color: var(--gray-600); margin-bottom: 5px; margin-top: 14px;
+}
+label:first-child { margin-top: 0; }
+input, select, textarea {
+  width: 100%; padding: 11px 14px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px; font-size: .92rem; color: var(--gray-800);
+  background: var(--gray-50); transition: border .2s;
+  min-height: var(--touch);
+  -webkit-appearance: none;
+}
+input[type=range] { min-height: auto; padding: 0; background: none; border: none; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
+textarea { min-height: 80px; resize: vertical; }
+
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.addr-wrap { position: relative; }
+.addr-wrap input { padding-right: 44px; }
+.addr-btn {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: var(--primary);
+  font-size: 1.15rem; padding: 6px; min-width: 36px; min-height: 36px;
+  display: flex; align-items: center; justify-content: center;
+}
+.addr-ok { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--success); font-size: 1rem; display: none; }
+
+/* ── UNIDAD SELECTOR ────────────────────────────────────────────────────── */
+.unidad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+.unidad-card {
+  border: 2px solid var(--gray-200); border-radius: 10px;
+  padding: 14px 10px; cursor: pointer; transition: .2s; text-align: center;
+  min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.unidad-card:hover { border-color: var(--primary); }
+.unidad-card.selected { border-color: var(--primary); background: #eff6ff; }
+.unidad-card .icon { font-size: 1.9rem; margin-bottom: 5px; }
+.unidad-card .titulo { font-weight: 700; font-size: .95rem; color: var(--primary); }
+.unidad-card .sub { font-size: .73rem; color: var(--gray-600); margin-top: 3px; line-height: 1.4; }
+
+/* ── MAP ────────────────────────────────────────────────────────────────── */
+#map { height: 240px; border-radius: 8px; overflow: hidden; margin-top: 8px; border: 1.5px solid var(--gray-200); }
+.ruta-info { display: flex; gap: 10px; margin-top: 10px; }
+.ruta-badge { flex: 1; background: var(--gray-100); border-radius: 8px; padding: 10px 8px; text-align: center; }
+.ruta-badge .val { font-size: 1.2rem; font-weight: 700; color: var(--primary); }
+.ruta-badge .lbl { font-size: .7rem; color: var(--gray-600); margin-top: 2px; }
+
+/* ── CASETAS LIST ───────────────────────────────────────────────────────── */
+.casetas-list { max-height: 240px; overflow-y: auto; border: 1.5px solid var(--gray-200); border-radius: 8px; margin-top: 8px; -webkit-overflow-scrolling: touch; }
+.caseta-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-bottom: 1px solid var(--gray-100); font-size: .82rem; gap: 8px; }
+.caseta-row:last-child { border-bottom: none; }
+.caseta-nombre { color: var(--gray-800); font-weight: 500; }
+.caseta-estado { color: var(--gray-400); font-size: .72rem; margin-top: 1px; }
+.caseta-tarifa { font-weight: 700; color: var(--accent); white-space: nowrap; flex-shrink: 0; }
+.casetas-total { display: flex; justify-content: space-between; padding: 9px 12px; font-weight: 700; background: var(--gray-100); font-size: .85rem; }
+
+/* ── EXTRAS SECTIONS ────────────────────────────────────────────────────── */
+.extra-block { border-radius: 10px; padding: 12px 14px; margin-top: 10px; }
+
+/* ── BUTTONS ────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 11px 20px; border-radius: 8px;
+  font-size: .88rem; font-weight: 600; cursor: pointer; border: none;
+  transition: .2s; min-height: var(--touch); white-space: nowrap;
+  -webkit-appearance: none;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover, .btn-primary:active { background: var(--primary-dark); }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-accent:hover, .btn-accent:active { background: #e05a28; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-outline { background: #fff; border: 2px solid var(--primary); color: var(--primary); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-row { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+.btn-lg { font-size: .95rem; width: 100%; padding: 13px 20px; }
+
+/* ── COTIZACIÓN ─────────────────────────────────────────────────────────── */
+.cot-header {
+  text-align: center; padding: 18px 16px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff; border-radius: 10px; margin-bottom: 14px;
+}
+.cot-header .empresa { font-size: 1.05rem; font-weight: 700; }
+.cot-header .folio { font-size: .78rem; opacity: .8; margin-top: 3px; }
+.cot-total { font-size: 2rem; font-weight: 800; margin: 7px 0; }
+.cot-zona { display: inline-block; background: rgba(255,255,255,.2); border-radius: 20px; padding: 3px 10px; font-size: .76rem; margin: 2px 2px 0; }
+
+.desglose { width: 100%; border-collapse: collapse; margin-top: 4px; }
+.desglose tr { border-bottom: 1px solid var(--gray-100); }
+.desglose tr:last-child { border-bottom: none; }
+.desglose td { padding: 8px 4px; font-size: .85rem; }
+.desglose td:last-child { text-align: right; font-weight: 600; white-space: nowrap; padding-left: 8px; }
+.desglose .subtotal td { background: var(--gray-100); font-weight: 700; }
+.desglose .total-row td { font-size: .98rem; font-weight: 800; color: var(--primary); padding-top: 12px; }
+.desglose .iva-row td { color: var(--gray-600); font-size: .8rem; }
+
+.alert { padding: 10px 13px; border-radius: 8px; font-size: .83rem; margin-top: 10px; line-height: 1.5; }
+.alert-info { background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe; }
+.alert-warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+
+/* ── LOADER ─────────────────────────────────────────────────────────────── */
+.loader { display: none; text-align: center; padding: 28px; color: var(--gray-600); }
+.spinner {
+  width: 34px; height: 34px; border: 4px solid var(--gray-200);
+  border-top-color: var(--primary); border-radius: 50%;
+  animation: spin .8s linear infinite; margin: 0 auto 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── MODAL IA ───────────────────────────────────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.55); z-index: 1000;
+  align-items: center; justify-content: center;
+  padding: 12px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: #fff; border-radius: var(--radius);
+  box-shadow: 0 8px 40px rgba(0,0,0,.25);
+  width: min(560px, 100%); max-height: 92vh; overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.modal-header {
+  background: var(--primary); color: #fff; padding: 15px 18px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-radius: var(--radius) var(--radius) 0 0;
+  position: sticky; top: 0;
+}
+.modal-header h3 { font-size: .95rem; font-weight: 700; }
+.modal-close { background: none; border: none; color: #fff; font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 4px 8px; }
+.modal-body { padding: 16px; }
+
+.drop-zone {
+  border: 2.5px dashed var(--gray-200); border-radius: 10px;
+  padding: 28px 16px; text-align: center; cursor: pointer;
+  transition: .2s; background: var(--gray-50);
+}
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--primary); background: #eff6ff; }
+.drop-zone .drop-icon { font-size: 2.3rem; margin-bottom: 8px; }
+.drop-zone p { color: var(--gray-600); font-size: .88rem; }
+.drop-zone strong { color: var(--primary); }
+
+.preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.preview-img { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 1; background: var(--gray-100); }
+.preview-img img { width: 100%; height: 100%; object-fit: cover; }
+.preview-img button { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,.6); color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: .75rem; cursor: pointer; line-height: 1; }
+
+.ia-resultado { background: var(--gray-50); border: 1.5px solid var(--gray-200); border-radius: 8px; padding: 14px; margin-top: 14px; font-size: .85rem; }
+.ia-resultado .ia-field { display: flex; gap: 8px; margin-bottom: 6px; }
+.ia-resultado .ia-label { color: var(--gray-600); min-width: 90px; font-weight: 600; }
+.ia-resultado .ia-val { color: var(--gray-800); }
+
+/* ── RESPONSIVE: TABLET (≤900px) ────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .container { grid-template-columns: 1fr; padding: 12px 10px 80px; gap: 12px; }
+  .header-badge { display: none; }
+  .card-sticky { position: static !important; }
+}
+
+/* ── RESPONSIVE: MOBILE (≤600px) ────────────────────────────────────────── */
+@media (max-width: 600px) {
+  header { height: 56px; padding: 0 12px; }
+  header h1 { font-size: 1rem; }
+  .btn-logout { padding: 5px 10px; font-size: .75rem; }
+
+  .container { padding: 10px 8px 80px; gap: 10px; }
+  .card-body { padding: 12px; }
+
+  /* Steps: número + etiqueta corta */
+  .steps { margin-bottom: 16px; }
+  .step { font-size: .68rem; padding: 8px 1px 7px; }
+  .step .step-num { font-size: .85rem; }
+
+  /* Inputs más cómodos al tacto */
+  input, select, textarea { font-size: .9rem; min-height: 48px; }
+
+  /* Fila de 2 cols → 1 col en pantallas muy pequeñas */
+  .input-row { grid-template-columns: 1fr; }
+
+  /* Tarjetas unidad: más compactas pero siguen siendo 2 cols */
+  .unidad-card { min-height: 96px; padding: 10px 6px; }
+  .unidad-card .icon { font-size: 1.6rem; }
+  .unidad-card .titulo { font-size: .88rem; }
+  .unidad-card .sub { font-size: .68rem; }
+
+  /* Mapa más bajo en móvil */
+  #map { height: 200px; }
+
+  /* Badges de ruta */
+  .ruta-badge .val { font-size: 1.05rem; }
+  .ruta-badge .lbl { font-size: .65rem; }
+
+  /* Total de cotización */
+  .cot-total { font-size: 1.75rem; }
+
+  /* Botones: los de acción principal van de ancho completo */
+  .btn-row { flex-direction: column; gap: 8px; }
+  .btn-row .btn { width: 100%; }
+  /* Excepciones: botones pequeños de navegación juntos */
+  .btn-row-nav { flex-direction: row !important; }
+  .btn-row-nav .btn { width: auto; flex: 1; }
+
+  /* Sección cotización — botones de exportar en grid 2x2 */
+  .btn-row-export { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn-row-export .btn { width: 100%; }
+
+  /* Panel interno de utilidad */
+  .util-grid { grid-template-columns: 1fr 1fr !important; }
+
+  /* Desglose: primera columna puede contraerse */
+  .desglose td { font-size: .8rem; padding: 7px 2px; }
+  .desglose td:last-child { font-size: .82rem; }
+
+  /* IA banner compacto */
+  .ia-banner { flex-direction: column; gap: 10px; align-items: stretch !important; }
+  .ia-banner .btn { width: 100%; }
+}
+
+/* ── RESPONSIVE: SMALL MOBILE (≤380px) ─────────────────────────────────── */
+@media (max-width: 380px) {
+  header h1 { font-size: .9rem; }
+  .step { font-size: .62rem; }
+  .cot-total { font-size: 1.5rem; }
+}
+
+/* ── PRINT ──────────────────────────────────────────────────────────────── */
+@media print {
+  header, .steps, .btn-row, #map, #sec-origen, #sec-unidad, #sec-extras, .no-print { display: none !important; }
+  .container { grid-template-columns: 1fr; padding: 0; }
+  .card { box-shadow: none; }
+}
+/* ── Agregados de la versión sin PC ─────────────────────────────────────── */
+#pantalla-login { max-width: 380px; margin: 60px auto; padding: 0 16px; }
+#pantalla-login .card-body { padding: 24px; }
+#pantalla-login h2 { font-size: 1.05rem; margin-bottom: 14px; }
+.tabs-inv { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.tabs-inv button { flex: 1; min-height: 40px; border: 1.5px solid var(--gray-200); background: #fff; border-radius: 8px; font-weight: 600; font-size: .8rem; cursor: pointer; color: var(--gray-600); }
+.tabs-inv button.on { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+.inv-grupo { border: 1.5px solid var(--gray-200); border-radius: 8px; margin-bottom: 6px; }
+.inv-grupo summary { padding: 10px 12px; font-weight: 700; font-size: .85rem; cursor: pointer; }
+.inv-fila { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; border-top: 1px solid var(--gray-100); font-size: .83rem; gap: 8px; }
+.inv-fila small { color: var(--gray-400); }
+.inv-ctl { display: flex; align-items: center; gap: 8px; }
+.inv-ctl button { width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid var(--gray-200); background: #fff; font-size: 1.1rem; cursor: pointer; }
+.inv-ctl b { min-width: 20px; text-align: center; }
+.inv-total { position: sticky; bottom: 0; background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 8px; padding: 10px 12px; font-weight: 700; color: var(--primary); margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+#pantalla-leads { display: none; max-width: 1100px; margin: 0 auto; padding: 16px 12px 40px; }
+#pantalla-leads table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+#pantalla-leads th { background: var(--primary); color: #fff; text-align: left; padding: 10px; font-size: .76rem; }
+#pantalla-leads td { padding: 9px 10px; font-size: .82rem; border-bottom: 1px solid var(--gray-100); vertical-align: top; }
+.tabla-scroll { overflow-x: auto; }
+.oculto { display: none !important; }
+</style>
+<script>(function(){var V='20261027093549';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+</head>
+<body>
+
+<header>
+  <h1>🚛 Mudanzas TML</h1>
+  <div class="header-right oculto" id="header-acciones">
+    <span class="header-badge">Panel Admin</span>
+    <a href="#" class="btn-logout" style="background:rgba(255,255,255,.25)" onclick="verLeads();return false" id="btn-leads">📋 Leads</a>
+    <a href="#" class="btn-logout" onclick="cerrarSesion();return false">🔒 Salir</a>
+  </div>
+</header>
+
+<!-- ENTRADA -->
+<div id="pantalla-login">
+  <div class="card"><div class="card-body">
+    <h2>🔒 Panel de cotizaciones</h2>
+    <label for="clave">Contraseña</label>
+    <input type="password" id="clave" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrarPanel()">
+    <div id="error-login" class="alert alert-warn oculto"></div>
+    <div class="btn-row"><button class="btn btn-primary btn-lg" id="btn-entrar" onclick="entrarPanel()">Entrar</button></div>
+  </div></div>
+</div>
+
+<!-- LEADS -->
+<div id="pantalla-leads">
+  <div class="btn-row" style="margin:0 0 12px"><button class="btn btn-outline" onclick="volverCotizador()">← Volver al cotizador</button></div>
+  <div class="card"><div class="card-body" id="leads-cuerpo">Cargando...</div></div>
+</div>
+
+<div class="container oculto" id="pantalla-cotizador">
+
+  <!-- COLUMNA IZQUIERDA: FORMULARIO -->
+  <div>
+    <div class="card">
+      <div class="card-body">
+
+        <div class="steps">
+          <div class="step active" id="tab1" onclick="irPaso(1)"><span class="step-num">①</span>Origen</div>
+          <div class="step" id="tab2" onclick="irPaso(2)"><span class="step-num">②</span>Unidad</div>
+          <div class="step" id="tab3" onclick="irPaso(3)"><span class="step-num">③</span>Detalles</div>
+          <div class="step" id="tab4" onclick="irPaso(4)"><span class="step-num">④</span>Cotización</div>
+        </div>
+
+        <!-- PASO 1: ORIGEN / DESTINO -->
+        <div class="section active" id="sec-origen">
+          <div class="ia-banner" style="margin-bottom:16px;padding:12px 16px;background:linear-gradient(135deg,#eff6ff,#dbeafe);border-radius:10px;border:1.5px solid #bfdbfe;display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div>
+              <div style="font-weight:700;font-size:.9rem;color:var(--primary)">📋 Inventario y datos del cliente</div>
+              <div style="font-size:.78rem;color:var(--gray-600);margin-top:2px">Elige muebles de la lista, pega el texto del cliente o sube capturas de WhatsApp</div>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModalIA()" style="white-space:nowrap;padding:10px 16px;font-size:.85rem">📋 Abrir</button>
+          </div>
+
+          <label>Dirección de origen</label>
+          <div class="addr-wrap">
+            <input type="text" id="origen" placeholder="Ej: Av. Insurgentes 1234, CDMX" oninput="resetAddr('origen')">
+            <button class="addr-btn" onclick="geocodificar('origen')" title="Buscar dirección">🔍</button>
+            <span class="addr-ok" id="origen-ok">✅</span>
+          </div>
+
+          <label>Dirección de destino</label>
+          <div class="addr-wrap">
+            <input type="text" id="destino" placeholder="Ej: Calle Juárez 50, Guadalajara" oninput="resetAddr('destino')">
+            <button class="addr-btn" onclick="geocodificar('destino')" title="Buscar dirección">🔍</button>
+            <span class="addr-ok" id="destino-ok">✅</span>
+          </div>
+
+          <label>Ruta en mapa</label>
+          <div id="map"></div>
+          <div class="ruta-info" id="ruta-info" style="display:none">
+            <div class="ruta-badge"><div class="val" id="ruta-km">—</div><div class="lbl">Kilómetros</div></div>
+            <div class="ruta-badge"><div class="val" id="ruta-hr">—</div><div class="lbl">Horas aprox.</div></div>
+            <div class="ruta-badge"><div class="val" id="ruta-zona">—</div><div class="lbl">Zona</div></div>
+          </div>
+
+          <div id="loader-ruta" class="loader"><div class="spinner"></div>Calculando ruta y casetas...</div>
+          <div id="error-ruta" class="alert alert-warn" style="display:none;margin-top:10px"></div>
+
+          <div class="btn-row btn-row-nav">
+            <button class="btn btn-primary" id="btn-calcular-ruta" onclick="calcularRuta()" disabled style="flex:1">Calcular ruta →</button>
+          </div>
+        </div>
+
+        <!-- PASO 2: UNIDAD -->
+        <div class="section" id="sec-unidad">
+          <div class="ia-banner" style="margin-bottom:16px;padding:12px 16px;background:linear-gradient(135deg,#eff6ff,#dbeafe);border-radius:10px;border:1.5px solid #bfdbfe;display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div>
+              <div style="font-weight:700;font-size:.9rem;color:var(--primary)">📐 Calcular metraje</div>
+              <div style="font-size:.78rem;color:var(--gray-600);margin-top:2px">Marca los muebles o pega la lista para calcular los m³</div>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModalIA()" style="white-space:nowrap;padding:10px 16px;font-size:.85rem">📋 Inventario</button>
+          </div>
+
+          <label>Selecciona la unidad necesaria</label>
+          <div class="unidad-grid">
+            <div class="unidad-card selected" id="card35" onclick="selUnidad(35)">
+              <div class="icon">🚚</div><div class="titulo">35 m³</div>
+              <div class="sub">Camión 2 ejes (C2)<br>Ideal: depto 1–3 rec.</div>
+            </div>
+            <div class="unidad-card" id="card85" onclick="selUnidad(85)">
+              <div class="icon">🚛</div><div class="titulo">85 m³</div>
+              <div class="sub">Camión 3 ejes (C3)<br>Ideal: casa 3–5 rec.</div>
+            </div>
+          </div>
+
+          <label style="margin-top:18px">Volumen estimado de enseres (m³)</label>
+          <input type="range" id="vol-slider" min="5" max="85" value="20" oninput="actualizarVol(this.value)" style="padding:0;background:none;border:none">
+          <div style="text-align:center; font-size:1.4rem; font-weight:700; color:var(--primary); margin:4px 0" id="vol-display">20 m³</div>
+          <div class="alert alert-info" id="vol-sugerencia">Sugerencia: unidad de 35 m³</div>
+          <div class="alert alert-warn" id="aviso-ejes" style="display:none">La unidad cambió de ejes: vuelve a calcular la ruta para tomar la tarifa de casetas correcta.</div>
+
+          <div class="btn-row btn-row-nav">
+            <button class="btn btn-outline" onclick="irPaso(1)">← Atrás</button>
+            <button class="btn btn-primary" onclick="irPaso(3)">Siguiente →</button>
+          </div>
+        </div>
+
+        <!-- PASO 3: DETALLES -->
+        <div class="section" id="sec-extras">
+          <div class="extra-block" style="background:#f5f3ff;border:1.5px solid #c4b5fd;">
+            <label style="margin-top:0;display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="recoleccion-adicional" style="width:auto;min-height:auto">
+              <span style="font-weight:700;font-size:.85rem">🚚 ¿Recolección en un punto adicional?</span>
+            </label>
+            <div style="font-size:.76rem;color:#5b21b6;margin-top:4px">Se cobra una maniobra de carga extra (según la unidad)</div>
+          </div>
+
+          <div class="extra-block" style="background:#fffbeb;border:1.5px solid #fde68a;">
+            <div style="font-weight:700;font-size:.85rem;margin-bottom:4px">🪜 Pisos de escalera (sin elevador)</div>
+            <div style="font-size:.76rem;color:#92400e;margin-bottom:10px">$200 por piso (carga + descarga)</div>
+            <div class="input-row">
+              <div><label style="margin-top:0">Pisos en carga</label><input type="number" id="piso-carga" min="0" value="0"></div>
+              <div><label style="margin-top:0">Pisos en descarga</label><input type="number" id="piso-descarga" min="0" value="0"></div>
+            </div>
+          </div>
+
+          <div class="extra-block" style="background:#fef3c7;border:1.5px solid #fbbf24;">
+            <div style="font-weight:700;font-size:.85rem;margin-bottom:4px">🏗️ Vuelo de muebles (por ventana)</div>
+            <div style="font-size:.76rem;color:#78350f;margin-bottom:10px">$700 por pieza, por cada 2 pisos volados</div>
+            <div class="input-row">
+              <div><label style="margin-top:0">Piezas a volar</label><input type="number" id="vuelo-piezas" min="0" value="0"></div>
+              <div><label style="margin-top:0">Pisos que se vuelan</label><input type="number" id="vuelo-pisos" min="0" value="0"></div>
+            </div>
+          </div>
+
+          <div class="extra-block" style="background:#f0fdf4;border:1.5px solid #86efac;">
+            <div style="font-weight:700;font-size:.85rem;margin-bottom:4px">🚶 Acarreos</div>
+            <div style="font-size:.76rem;color:#166534;margin-bottom:10px">Primeros 20 m gratis, luego $1,000 por cada 50 m (o fracción)</div>
+            <label style="margin-top:0">Distancia entre camión y puerta (m)</label>
+            <input type="number" id="acarreo-metros" min="0" value="0">
+            <div style="font-size:.76rem;color:#166534;margin:10px 0">Si se necesita camioneta para hacer viajes (27 m³ c/u, $3,000 por viaje):</div>
+            <label style="margin-top:0">m³ a mover en camioneta</label>
+            <input type="number" id="acarreo-camioneta-m3" min="0" value="0">
+          </div>
+
+          <div class="extra-block" style="background:#fdf2f8;border:1.5px solid #f9a8d4;">
+            <div style="font-weight:700;font-size:.85rem;margin-bottom:4px">🎹 Maniobras especiales</div>
+            <div class="input-row">
+              <div><label style="margin-top:0">Piano vertical ($3,000)</label><input type="number" id="piano-vertical" min="0" value="0"></div>
+              <div><label style="margin-top:0">Piano media cola ($5,800)</label><input type="number" id="piano-media-cola" min="0" value="0"></div>
+            </div>
+            <div class="input-row" style="margin-top:10px">
+              <div><label style="margin-top:0">Piano de cola ($7,800)</label><input type="number" id="piano-cola" min="0" value="0"></div>
+              <div><label style="margin-top:0">Cubierta cantera/mármol/ónix ($4,800)</label><input type="number" id="cubiertas-especiales" min="0" value="0"></div>
+            </div>
+            <div style="font-size:.76rem;color:#9d174d;margin:10px 0 4px">Cajas fuertes:</div>
+            <div class="input-row">
+              <div><label style="margin-top:0">Chica ($3,000)</label><input type="number" id="cf-chica" min="0" value="0"></div>
+              <div><label style="margin-top:0">Mediana ($5,800)</label><input type="number" id="cf-mediana" min="0" value="0"></div>
+            </div>
+            <label style="margin-top:10px">Grande ($7,800)</label>
+            <input type="number" id="cf-grande" min="0" value="0">
+          </div>
+
+          <div class="extra-block" style="background:#eff6ff;border:1.5px solid #bfdbfe;">
+            <div style="font-weight:700;font-size:.85rem;margin-bottom:4px">📦 Embalaje (estimado inicial, se ajusta al finalizar)</div>
+            <div class="input-row">
+              <div><label style="margin-top:0">Cajas de libros ($200)</label><input type="number" id="cajas-libros" min="0" value="0"></div>
+              <div><label style="margin-top:0">Cajas de varios ($300)</label><input type="number" id="cajas-varios" min="0" value="0"></div>
+            </div>
+            <div class="input-row" style="margin-top:10px">
+              <div><label style="margin-top:0">Cajas ropero ($750)</label><input type="number" id="cajas-ropero" min="0" value="0"></div>
+              <div><label style="margin-top:0">Roperos acostados ($480)</label><input type="number" id="roperos-acostados" min="0" value="0"></div>
+            </div>
+            <label style="margin-top:10px">Cajas barrica ($360)</label>
+            <input type="number" id="cajas-barrica" min="0" value="0">
+          </div>
+
+          <label>Fecha estimada de carga</label>
+          <input type="text" id="fecha-carga" placeholder="Ej: 15 de Julio del 2026">
+          <label>Notas adicionales del cliente</label>
+          <textarea id="notas" rows="3" placeholder="Objetos especiales, horario, accesos difíciles..."></textarea>
+          <label>Nombre del cliente</label>
+          <input type="text" id="cliente-nombre" placeholder="Nombre completo">
+          <label>Teléfono / WhatsApp</label>
+          <input type="text" id="cliente-tel" placeholder="55 0000 0000">
+
+          <div id="aviso-sin-ruta" class="alert alert-warn" style="display:none;margin-top:12px">⚠️ Regresa al paso 1 y calcula la ruta antes de cotizar.</div>
+
+          <div class="btn-row btn-row-nav">
+            <button class="btn btn-outline" onclick="irPaso(2)">← Atrás</button>
+            <button class="btn btn-accent" id="btn-generar" onclick="generarCotizacion()" style="flex:1">🧮 Generar cotización</button>
+          </div>
+        </div>
+
+        <!-- PASO 4: COTIZACIÓN -->
+        <div class="section" id="sec-cotizacion">
+          <div id="cot-resultado"></div>
+          <div class="btn-row btn-row-nav" style="margin-bottom:8px">
+            <button class="btn btn-outline" onclick="irPaso(3)">← Editar</button>
+            <button class="btn btn-outline" onclick="nuevaCotizacion()">+ Nueva</button>
+          </div>
+          <div class="btn-row btn-row-export">
+            <button class="btn btn-primary" onclick="descargar()" id="btn-pdf" style="grid-column:span 2">📄 Descargar PDF</button>
+            <button class="btn btn-accent" id="btn-wa" onclick="compartirWA()" style="grid-column:span 2">💬 Enviar por WhatsApp</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- COLUMNA DERECHA: CASETAS -->
+  <div>
+    <div class="card card-sticky" style="position:sticky;top:76px">
+      <div class="card-header">🛣️ Casetas en ruta</div>
+      <div class="card-body" id="casetas-panel">
+        <div style="color:var(--gray-400);text-align:center;padding:40px 0;font-size:.9rem">Ingresa origen y destino para ver las casetas de la ruta</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INVENTARIO -->
+<div class="modal-overlay" id="modal-ia">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📋 Inventario y datos del cliente</h3>
+      <button class="modal-close" onclick="cerrarModalIA()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs-inv">
+        <button class="on" id="tb-lista" onclick="tabInv('lista')">🪑 Lista de muebles</button>
+        <button id="tb-texto" onclick="tabInv('texto')">✍️ Pegar texto</button>
+        <button id="tb-fotos" onclick="tabInv('fotos')">💬 Capturas</button>
+      </div>
+
+      <div id="pn-lista">
+        <div id="selector-muebles"></div>
+        <div class="inv-total"><span id="sel-total">0 m³</span><button class="btn btn-primary" style="min-height:38px;padding:8px 14px" onclick="aplicarSelector()">✅ Usar estos m³</button></div>
+      </div>
+
+      <div id="pn-texto" style="display:none">
+        <label style="margin-top:0">Pega la lista o el chat del cliente</label>
+        <textarea id="texto-inventario" rows="6" placeholder="Ej: 1 sofá de 3 plazas, cama queen, refrigerador, 2 roperos, comedor 6 sillas..."></textarea>
+        <div class="btn-row"><button class="btn btn-accent btn-lg" onclick="analizarTextoPegado()">🔍 Calcular</button></div>
+      </div>
+
+      <div id="pn-fotos" style="display:none">
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+             ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFiles(event)">
+          <div class="drop-icon">💬</div>
+          <p>Capturas de WhatsApp o fotos de una lista escrita — <strong>toca para elegir</strong></p>
+          <p style="margin-top:4px;font-size:.78rem;color:var(--gray-400)">Se lee el texto de la imagen (hasta 6). Las fotos de muebles no se reconocen solas: para eso usa la lista de muebles.</p>
+        </div>
+        <input type="file" id="file-input" accept="image/*" multiple style="display:none" onchange="agregarArchivos(this.files)">
+        <div class="preview-grid" id="preview-grid"></div>
+        <div class="btn-row" id="ia-btn-analizar-wrap" style="display:none">
+          <button class="btn btn-accent btn-lg" id="ia-btn-analizar" onclick="leerCapturas()">🔍 Leer capturas</button>
+        </div>
+      </div>
+
+      <div id="ia-loader" class="loader"><div class="spinner"></div>Leyendo...</div>
+      <div id="ia-error" class="alert alert-warn" style="display:none;margin-top:12px"></div>
+      <div id="ia-resultado-panel" style="display:none">
+        <div class="ia-resultado" id="ia-resultado-contenido"></div>
+        <div class="btn-row" style="margin-top:16px">
+          <button class="btn btn-primary btn-lg" onclick="aplicarDatosIA()">✅ Aplicar al formulario</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbw76QcJ1KMxTnVj8OxVOGHphHOPjT_87bwSTHoMetI3oNJ0bluNB3w2wXs2IAoKdZvciQ/exec';
+let TOKEN = '';
+try { TOKEN = localStorage.getItem('tml_cot_token') || ''; } catch (e) {}
+
+function api(fn, ...args) {
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: fn, args: args }) })
+    .then(r => r.json(), () => { throw 'Sin conexión a internet. Intenta de nuevo.'; })
+    .then(j => {
+      if (j.ok) return j.r;
+      const e = String(j.error || 'Error');
+      if (e.startsWith('SESION:')) { mostrarLogin(e.slice(7).trim()); throw e.slice(7).trim(); }
+      throw e;
+    });
+}
+const adm = (fn, ...args) => api(fn, TOKEN, ...args);
+const $ = id => document.getElementById(id);
+function escHtml(str) { return String(str == null ? '' : str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Entrada ───────────────────────────────────────────────────────────────
+let EMPRESA_TEL = '';
+function mostrarLogin(msg) {
+  $('pantalla-login').classList.remove('oculto'); $('pantalla-cotizador').classList.add('oculto');
+  $('pantalla-leads').style.display = 'none'; $('header-acciones').classList.add('oculto');
+  if (msg) { $('error-login').textContent = msg; $('error-login').classList.remove('oculto'); }
+}
+function mostrarPanel(res) {
+  $('pantalla-login').classList.add('oculto'); $('pantalla-cotizador').classList.remove('oculto'); $('header-acciones').classList.remove('oculto');
+  if (res) { EMPRESA_TEL = res.telefono || ''; $('btn-leads').textContent = '📋 Leads' + (res.leadsHoy ? ' · ' + res.leadsHoy + ' hoy' : ''); }
+  if (!mapa) initMapa(); else setTimeout(() => mapa.invalidateSize(), 50);
+}
+async function entrarPanel() {
+  const b = $('btn-entrar'); b.disabled = true; $('error-login').classList.add('oculto');
+  try {
+    const r = await api('entrar', $('clave').value);
+    TOKEN = r.token; try { localStorage.setItem('tml_cot_token', TOKEN); } catch (e) {}
+    $('clave').value = ''; mostrarPanel(r.resumen);
+  } catch (e) { $('error-login').textContent = e; $('error-login').classList.remove('oculto'); }
+  b.disabled = false;
+}
+function cerrarSesion() {
+  api('salir', TOKEN).catch(() => {}); TOKEN = '';
+  try { localStorage.removeItem('tml_cot_token'); } catch (e) {}
+  mostrarLogin();
+}
+if (TOKEN) adm('resumen').then(mostrarPanel, () => mostrarLogin()); else mostrarLogin();
+
+// ── Leads ─────────────────────────────────────────────────────────────────
+async function verLeads() {
+  $('pantalla-cotizador').classList.add('oculto'); $('pantalla-leads').style.display = 'block'; $('leads-cuerpo').textContent = 'Cargando...';
+  try {
+    const L = await adm('leads');
+    if (!L.length) { $('leads-cuerpo').innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:30px">Aún no hay cotizaciones del portal público.</div>'; return; }
+    $('leads-cuerpo').innerHTML = `<div style="font-weight:700;margin-bottom:10px">${L.length} cotizaciones del portal público (más recientes primero)</div><div class="tabla-scroll"><table>
+      <thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th>WhatsApp</th><th>Ruta</th><th>Unidad</th><th>Diésel</th><th>Casetas</th><th>Total</th><th>Notas</th></tr></thead><tbody>` +
+      L.map(l => `<tr><td style="font-family:monospace;font-size:.75rem">${escHtml(l.folio)}</td><td>${escHtml(l.fecha)}</td><td>${escHtml(l.cliente || '—')}</td>
+        <td>${l.tel ? `<a href="https://wa.me/${escHtml(limpiarTelWA(l.tel))}" target="_blank" rel="noopener">${escHtml(l.tel)}</a>` : '—'}</td>
+        <td>${escHtml(l.origen || '?')} → ${escHtml(l.destino || '?')} (${l.km ? Math.round(l.km) : '—'} km)</td><td>${escHtml(l.unidad)} m³</td>
+        <td style="white-space:nowrap">${l.diesel ? fmx(Number(l.diesel)) : '—'}</td><td style="white-space:nowrap">${l.casetas !== '' ? fmx(Number(l.casetas)) : '—'}</td>
+        <td style="font-weight:700;color:var(--success);white-space:nowrap">${l.total ? fmx(Number(l.total)) : '—'}</td><td>${escHtml(l.notas || '')}</td></tr>`).join('') + '</tbody></table></div>';
+  } catch (e) { $('leads-cuerpo').textContent = '⚠️ ' + e; }
+}
+function volverCotizador() { $('pantalla-leads').style.display = 'none'; $('pantalla-cotizador').classList.remove('oculto'); setTimeout(() => mapa && mapa.invalidateSize(), 50); }
+
+// ── Estado ────────────────────────────────────────────────────────────────
+const S = { olat: null, olon: null, dlat: null, dlon: null, dist_km: 0, dur_min: 0, casetas: [], casetas_aviso: null, unidad: 35, m3: 20, ejesRuta: null };
+let mapa = null, rutaLayer = null, markers = [];
+
+function initMapa() {
+  mapa = L.map('map', { zoomControl: true }).setView([23.5, -102.5], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 18 }).addTo(mapa);
+}
+function actualizarMapa(coords, esVistaPrevia) {
+  if (rutaLayer) { mapa.removeLayer(rutaLayer); rutaLayer = null; }
+  markers.forEach(m => mapa.removeLayer(m)); markers = [];
+  if (!coords || coords.length === 0) return;
+  const estilo = esVistaPrevia ? { color: '#9ca3af', weight: 3, opacity: .8, dashArray: '6 8' } : { color: '#1a56db', weight: 4, opacity: .85 };
+  rutaLayer = L.polyline(coords, estilo).addTo(mapa);
+  markers.push(L.marker(coords[0], { icon: L.divIcon({ html: '🟢', className: '', iconSize: [24,24] }) }).addTo(mapa).bindPopup('Origen'));
+  markers.push(L.marker(coords[coords.length-1], { icon: L.divIcon({ html: '🔴', className: '', iconSize: [24,24] }) }).addTo(mapa).bindPopup('Destino'));
+  mapa.fitBounds(rutaLayer.getBounds(), { padding: [30, 30] });
+}
+
+// ── Geocodificación ───────────────────────────────────────────────────────
+async function geocodificar(tipo) {
+  const inp = $(tipo), val = inp.value.trim();
+  if (!val) return;
+  inp.disabled = true;
+  let d;
+  try { d = await adm('geocode', val); } catch (e) { inp.disabled = false; alert(e); return; }
+  inp.disabled = false;
+  if (tipo === 'origen') { S.olat = d.lat; S.olon = d.lon; $('origen-ok').style.display = 'block'; }
+  else { S.dlat = d.lat; S.dlon = d.lon; $('destino-ok').style.display = 'block'; }
+  if (S.olat && S.dlat) {
+    $('btn-calcular-ruta').disabled = false;
+    actualizarMapa([[S.olat, S.olon], [S.dlat, S.dlon]], true);
+    calcularRuta();
+  }
+}
+function resetAddr(tipo) {
+  if (tipo === 'origen') { S.olat = null; $('origen-ok').style.display = 'none'; }
+  else { S.dlat = null; $('destino-ok').style.display = 'none'; }
+  $('btn-calcular-ruta').disabled = true;
+}
+
+// ── Ruta ──────────────────────────────────────────────────────────────────
+let rutaEnCurso = null;
+function calcularRuta() {
+  if (!S.olat || !S.dlat) { alert('Busca primero el origen y el destino'); return Promise.resolve(); }
+  if (rutaEnCurso) return rutaEnCurso;
+  return (rutaEnCurso = calcularRuta_().finally(() => { rutaEnCurso = null; }));
+}
+async function calcularRuta_() {
+  $('loader-ruta').style.display = 'block'; $('btn-calcular-ruta').disabled = true; $('error-ruta').style.display = 'none';
+  const ejes = S.unidad === 35 ? 2 : 3;
+  let d;
+  try { d = await adm('ruta', { olat: S.olat, olon: S.olon, dlat: S.dlat, dlon: S.dlon, ejes }); }
+  catch (e) {
+    $('loader-ruta').style.display = 'none'; $('btn-calcular-ruta').disabled = false;
+    actualizarMapa(null); $('ruta-info').style.display = 'none';
+    $('error-ruta').textContent = '⚠️ No se pudo calcular la ruta por carretera (' + e + '). Intenta de nuevo.'; $('error-ruta').style.display = 'block';
+    return;
+  }
+  $('loader-ruta').style.display = 'none'; $('btn-calcular-ruta').disabled = false;
+  S.dist_km = d.dist_km; S.dur_min = d.dur_min; S.casetas = d.casetas; S.casetas_aviso = d.casetas_aviso || null; S.ejesRuta = ejes;
+  $('aviso-ejes').style.display = 'none';
+  if (d.ruta_aviso) { $('error-ruta').textContent = '💾 ' + d.ruta_aviso; $('error-ruta').style.display = 'block'; }
+  actualizarMapa(d.coords); mostrarRutaInfo(); mostrarCasetasPanel(); irPaso(2);
+}
+function mostrarRutaInfo() {
+  $('ruta-km').textContent = S.dist_km.toFixed(0) + ' km';
+  $('ruta-hr').textContent = (S.dur_min/60).toFixed(1) + ' h';
+  $('ruta-zona').textContent = S.dist_km <= 60 ? 'Local' : S.dist_km <= 400 ? 'Regional' : 'Nacional';
+  $('ruta-info').style.display = 'flex';
+}
+function mostrarCasetasPanel() {
+  const p = $('casetas-panel');
+  if (!S.casetas.length) {
+    p.innerHTML = S.casetas_aviso ? `<div class="alert alert-warn" style="margin:8px">⚠️ No se pudieron obtener las casetas desde la SCT: ${escHtml(S.casetas_aviso)}</div>`
+      : '<div style="color:var(--gray-400);text-align:center;padding:20px">Sin casetas identificadas en la ruta</div>';
+    return;
+  }
+  const ejes = S.ejesRuta || (S.unidad === 35 ? 2 : 3), total = S.casetas.reduce((a,c)=>a+c.tarifa,0);
+  let html = S.casetas_aviso ? `<div class="alert alert-warn" style="margin:8px 8px 0">💾 ${escHtml(S.casetas_aviso)}</div>` : '';
+  html += '<div class="casetas-list">';
+  S.casetas.forEach(c => {
+    const aviso = c.incierto ? ` <span title="Esta caseta tiene más de una tarifa posible en la misma zona — confirma el precio a mano antes de cotizar" style="cursor:help">⚠️</span>` : '';
+    html += `<div class="caseta-row"><div><div class="caseta-nombre">${escHtml(c.nombre)}${aviso}</div><div class="caseta-estado">${escHtml(String(c.carretera).substring(0,30))} · ${escHtml(c.estado)}</div></div>
+      <div class="caseta-tarifa">$${c.tarifa.toFixed(0)}</div></div>`;
+  });
+  html += '</div>';
+  if (S.casetas.some(c => c.incierto)) html += `<div class="alert alert-warn" style="margin-top:8px">⚠️ Una o más casetas (marcadas arriba) tienen varias tarifas posibles en la misma zona — confírmalas a mano antes de enviar la cotización.</div>`;
+  html += `<div class="casetas-total"><span>Total ida (${S.casetas.length} casetas)</span><span style="color:var(--accent)">$${total.toFixed(0)}</span></div>`;
+  html += `<div class="casetas-total" style="background:#fff3e0"><span>Total ida + vuelta</span><span style="color:var(--accent);font-size:1rem">$${(total*2).toFixed(0)}</span></div>`;
+  html += `<div class="alert alert-info" style="margin-top:8px">Unidad C${ejes} · ${S.dist_km} km · Casetas con tarifa por eje correspondiente</div>`;
+  p.innerHTML = html;
+}
+
+// ── Unidad ────────────────────────────────────────────────────────────────
+function selUnidad(u) {
+  S.unidad = u;
+  $('card35').classList.toggle('selected', u===35); $('card85').classList.toggle('selected', u===85);
+  $('aviso-ejes').style.display = S.ejesRuta && S.ejesRuta !== (u === 35 ? 2 : 3) ? 'block' : 'none';
+}
+function actualizarVol(v) {
+  S.m3 = parseInt(v);
+  $('vol-display').textContent = v + ' m³';
+  $('vol-sugerencia').textContent = '💡 Sugerencia: ' + (v <= 35 ? 'unidad de 35 m³ (recomendada)' : 'unidad de 85 m³ (recomendada)');
+  if (v > 35 && S.unidad === 35) selUnidad(85);
+  if (v <= 35 && S.unidad === 85) selUnidad(35);
+}
+
+// ── Pasos ─────────────────────────────────────────────────────────────────
+function irPaso(n) {
+  ['sec-origen','sec-unidad','sec-extras','sec-cotizacion'].forEach((id,i) => $(id).classList.toggle('active', i===n-1));
+  for (let i=1;i<=4;i++) { const t = $('tab'+i); t.classList.remove('active','done'); if (i < n) t.classList.add('done'); if (i === n) t.classList.add('active'); }
+}
+
+// ── Cotización ────────────────────────────────────────────────────────────
+async function generarCotizacion() {
+  const ejes = S.unidad === 35 ? 2 : 3;
+  if (!S.dist_km || (S.ejesRuta && S.ejesRuta !== ejes)) {   // sin ruta, o cambió el camión: recalcular casetas
+    if (S.olat && S.dlat) await calcularRuta();
+    if (!S.dist_km) { $('aviso-sin-ruta').style.display = 'block'; return; }
+  }
+  $('aviso-sin-ruta').style.display = 'none';
+  const num = id => parseInt($(id).value) || 0;
+  const payload = {
+    unidad: S.unidad, dist_km: S.dist_km, casetas: S.casetas, m3_estimado: S.m3,
+    recoleccion_adicional: $('recoleccion-adicional').checked,
+    piso_carga: num('piso-carga'), piso_descarga: num('piso-descarga'), vuelo_piezas: num('vuelo-piezas'), vuelo_pisos: num('vuelo-pisos'),
+    acarreo_metros: num('acarreo-metros'), acarreo_camioneta_m3: num('acarreo-camioneta-m3'),
+    pianos_vertical: num('piano-vertical'), pianos_media_cola: num('piano-media-cola'), pianos_cola: num('piano-cola'), cubiertas_especiales: num('cubiertas-especiales'),
+    cf_chica: num('cf-chica'), cf_mediana: num('cf-mediana'), cf_grande: num('cf-grande'),
+    cajas_libros: num('cajas-libros'), cajas_varios: num('cajas-varios'), cajas_ropero: num('cajas-ropero'), roperos_acostados: num('roperos-acostados'), cajas_barrica: num('cajas-barrica'),
+  };
+  const b = $('btn-generar'); b.disabled = true;
+  try { mostrarCotizacion(await adm('cotizar', payload)); mostrarCasetasPanel(); irPaso(4); }
+  catch (e) { alert('Error al cotizar: ' + e); }
+  b.disabled = false;
+}
+function fmx(n) { return '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0}); }
+
+function mostrarCotizacion(d) {
+  const folio = 'CTZ-' + Date.now().toString().slice(-6);
+  const fecha = new Date().toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'});
+  const cliente = $('cliente-nombre').value || '—', tel = $('cliente-tel').value || '—', notas = $('notas').value || '';
+  const origen = $('origen').value, destino = $('destino').value;
+  const zonaLabel = {local:'Local',regional:'Regional',nacional:'Nacional'}[d.zona];
+  window._cotData = { d, folio, fecha, cliente, tel, origen, destino };
+
+  const minTag = d.aplico_minimo ? ' <em style="color:var(--gray-400);font-size:.8em">(precio mínimo)</em>' : '';
+  let rows = `<tr><td>🚛 Flete ${d.unidad_m3} m³ · ${d.dist_km} km${minTag}</td><td>${fmx(d.flete)}</td></tr>
+    <tr><td>👷 Maniobra de carga y descarga</td><td>${fmx(d.m_carga + d.m_descarga)}</td></tr>`;
+  if (d.costo_recoleccion)          rows += `<tr><td>🚚 Recolección adicional</td><td>${fmx(d.costo_recoleccion)}</td></tr>`;
+  if (d.costo_maniobras_especiales) rows += `<tr><td>🎹 Maniobras especiales (pianos, cajas fuertes, cubiertas)</td><td>${fmx(d.costo_maniobras_especiales)}</td></tr>`;
+  if (d.costo_vuelo)                rows += `<tr><td>🏗️ Vuelo de muebles (${d.vuelo_piezas} pieza(s) × ${d.vuelo_pisos} piso(s))</td><td>${fmx(d.costo_vuelo)}</td></tr>`;
+  if (d.costo_acarreos)             rows += `<tr><td>🚶 Acarreos</td><td>${fmx(d.costo_acarreos)}</td></tr>`;
+  if (d.costo_pisos)                rows += `<tr><td>🪜 Pisos de escalera (${d.piso_carga} carga + ${d.piso_descarga} descarga)</td><td>${fmx(d.costo_pisos)}</td></tr>`;
+  if (d.costo_embalaje)             rows += `<tr><td>📦 Embalaje est. <em style="color:var(--gray-400);font-size:.8em">ajustable</em></td><td>${fmx(d.costo_embalaje)}</td></tr>`;
+
+  $('cot-resultado').innerHTML = `
+    <div class="cot-header">
+      <div class="empresa">Mudanzas TML</div>
+      <div class="folio">${folio} · ${fecha}</div>
+      <div class="cot-total">${fmx(d.total)}</div>
+      <div><span class="cot-zona">${zonaLabel}</span><span class="cot-zona">${d.dist_km} km</span><span class="cot-zona">${d.unidad_m3} m³</span></div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="display:flex;gap:20px;font-size:.85rem;color:var(--gray-600)"><div>👤 <strong>${escHtml(cliente)}</strong></div><div>📱 ${escHtml(tel)}</div></div>
+      <div style="font-size:.82rem;color:var(--gray-600);margin-top:4px">📍 ${escHtml(origen)}<br>📍 ${escHtml(destino)}</div>
+      ${notas ? `<div class="alert alert-warn" style="margin-top:8px">📝 ${escHtml(notas)}</div>` : ''}
+    </div>
+    <table class="desglose">
+      ${rows}
+      <tr class="subtotal"><td colspan="2" style="height:4px"></td></tr>
+      <tr class="iva-row"><td>Subtotal</td><td>${fmx(d.subtotal)}</td></tr>
+      <tr class="iva-row"><td>IVA 16%</td><td>${fmx(d.iva)}</td></tr>
+      <tr class="total-row"><td>TOTAL</td><td>${fmx(d.total)}</td></tr>
+    </table>
+    <div class="no-print" style="margin-top:14px;padding:14px;background:#fff7ed;border:1.5px solid #fdba74;border-radius:10px">
+      <div style="font-weight:700;font-size:.85rem;margin-bottom:8px;color:#9a3412">⛽ Gastos del viaje (solo para ti, no salen en el PDF)</div>
+      <table class="desglose">
+        <tr><td>Diésel · ${d.litros} L (ida y vuelta)</td><td>${fmx(d.costo_diesel)}</td></tr>
+        <tr><td>Casetas · ${d.num_casetas} en ruta × 2 (ida y vuelta)</td><td>${fmx(d.costo_casetas)}</td></tr>
+        <tr><td>Operador (13% del flete)</td><td>${fmx(d.operador)}</td></tr>
+        <tr class="total-row"><td style="color:#9a3412">Gasto total del viaje</td><td style="color:#9a3412">${fmx(d.costos_servicio)}</td></tr>
+      </table>
+      <div style="font-size:.75rem;color:#9a3412;margin-top:6px">Es el ${d.flete > 0 ? Math.round(d.costos_servicio/d.flete*100) : 0}% del flete${d.aplico_minimo ? ' (se aplicó el precio mínimo)' : ''}.</div>
+    </div>
+    <div class="no-print" style="margin-top:14px;padding:14px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px">
+      <div style="font-weight:700;font-size:.85rem;margin-bottom:10px;color:#166534">💰 Utilidad y ajuste de precio</div>
+      <div class="util-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;text-align:center">
+        <div style="background:#fff;border-radius:8px;padding:8px"><div style="font-size:.72rem;color:var(--gray-600)">Costos transporte</div><div style="font-weight:700">${fmx(d.costos_servicio)}</div></div>
+        <div style="background:#fff;border-radius:8px;padding:8px"><div style="font-size:.72rem;color:var(--gray-600)">Utilidad en flete</div><div style="font-weight:700;color:var(--success)" id="cot-utilidad">${fmx(d.flete - d.costos_servicio)}</div></div>
+        <div style="background:#fff;border-radius:8px;padding:8px"><div style="font-size:.72rem;color:var(--gray-600)">Margen</div><div style="font-weight:700;color:var(--success)" id="cot-margen">${d.flete > 0 ? Math.round((d.flete - d.costos_servicio) / d.flete * 100) : 0}%</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="font-size:.82rem;font-weight:600;color:#166534;margin:0;white-space:nowrap">Total a cobrar (IVA inc.):</label>
+        <input type="number" id="precio-manual" value="${d.total}" min="0" step="100" style="width:140px;padding:8px 10px;border:2px solid #86efac;border-radius:8px;font-size:.95rem;font-weight:700;color:#166534;text-align:right" oninput="actualizarPrecioManual(this.value)">
+        <button onclick="resetPrecioManual()" style="background:none;border:1.5px solid #86efac;border-radius:6px;padding:7px 10px;font-size:.78rem;cursor:pointer;color:#166534">↩ Restablecer</button>
+      </div>
+      <div style="font-size:.75rem;color:#166534;margin-top:6px" id="precio-manual-nota">Subtotal: ${fmx(d.subtotal)} · IVA 16%: ${fmx(d.iva)}</div>
+    </div>
+    <div class="alert alert-info" style="margin-top:10px;font-size:.8rem">✅ Cotización válida por 7 días · Embalaje se ajusta al finalizar el empaque · Sujeto a visita de estimación</div>`;
+}
+function actualizarPrecioManual(val) {
+  const nuevo_total = parseFloat(val) || 0, nuevo_sub = Math.round(nuevo_total / 1.16), nuevo_iva = nuevo_total - nuevo_sub;
+  $('precio-manual-nota').textContent = `Subtotal: ${fmx(nuevo_sub)} · IVA 16%: ${fmx(nuevo_iva)}`;
+  const cd = window._cotData;
+  if (cd) {
+    const nuevo_flete = Math.max(0, nuevo_sub - (cd.d.costo_maniobras_total || 0)), util = nuevo_flete - (cd.d.costos_servicio || 0);
+    $('cot-utilidad').textContent = fmx(util);
+    $('cot-margen').textContent = (nuevo_flete > 0 ? Math.round(util / nuevo_flete * 100) : 0) + '%';
+    $('cot-utilidad').style.color = util >= 0 ? 'var(--success)' : '#dc2626';
+  }
+}
+function resetPrecioManual() { const cd = window._cotData; if (!cd) return; $('precio-manual').value = cd.d.total; actualizarPrecioManual(cd.d.total); }
+
+function limpiarTelWA(tel) {
+  let t = (tel || '').replace(/[\s\-\(\)\+\.]/g, '');
+  if (t.length === 10) t = '52' + t; else if (t.startsWith('1') && t.length === 11) t = '52' + t.slice(1);
+  return t;
+}
+
+// ── Exportar ──────────────────────────────────────────────────────────────
+function _payloadExport() {
+  const cd = window._cotData;
+  if (!cd) return null;
+  let cot = Object.assign({}, cd.d);
+  const pm = $('precio-manual');
+  if (pm) {
+    const nuevo_total = parseFloat(pm.value) || cot.total;
+    if (Math.abs(nuevo_total - cot.total) > 1) {
+      const nuevo_sub = Math.round(nuevo_total / 1.16);
+      cot = Object.assign({}, cot, { flete: Math.max(0, nuevo_sub - (cot.costo_maniobras_total || 0)), subtotal: nuevo_sub, iva: nuevo_total - nuevo_sub, total: nuevo_total, precio_ajustado: true });
+    }
+  }
+  return { folio: cd.folio, origen: $('origen').value, destino: $('destino').value, cliente_nombre: $('cliente-nombre').value,
+    cliente_tel: $('cliente-tel').value, fecha_carga: $('fecha-carga').value || null, unidad: S.unidad, cotizacion: cot };
+}
+function bajarArchivo(r) {
+  const bin = atob(r.b64), arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([arr], { type: r.mime })), a = document.createElement('a');
+  a.href = url; a.download = r.nombre; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+async function descargar() {
+  const payload = _payloadExport(); if (!payload) return null;
+  const btn = $('btn-pdf'), txt = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Generando PDF...';
+  try {
+    const r = await adm('exportar', payload);
+    bajarArchivo(r);
+    return r;
+  } catch (e) { alert('No se pudo generar: ' + e); return null; }
+  finally { btn.disabled = false; btn.textContent = txt; }
+}
+async function compartirWA() {
+  const cd = window._cotData; if (!cd) return;
+  const { d, folio, cliente, origen, destino } = cd;
+  const waNum = limpiarTelWA($('cliente-tel').value);
+  if (!waNum || waNum.length < 10) { alert('Ingresa el teléfono del cliente en el formulario para poder enviar por WhatsApp.'); return; }
+  // Se abre la ventana antes de esperar el PDF (si no, el navegador la bloquea).
+  const w = window.open('about:blank', '_blank');
+  const btnWA = $('btn-wa'); btnWA.disabled = true; btnWA.textContent = '⏳ Preparando...';
+  await descargar();
+  const nombreCliente = cliente && cliente !== '—' ? cliente : 'estimado cliente';
+  const zonaLabel = {local:'local', regional:'regional', nacional:'foránea'}[d.zona] || d.zona;
+  const precioTotal = $('precio-manual') ? (parseFloat($('precio-manual').value) || d.total) : d.total;
+  const msg = [
+    `Buen día, ${nombreCliente} 👋`, ``,
+    `Es un placer para *Mudanzas TML* atenderte. Adjunto encontrarás la cotización formal para tu mudanza ${zonaLabel}. 📋`, ``,
+    `━━━━━━━━━━━━━━━━━━━━`, `🚛 *Cotización ${folio}*`, `━━━━━━━━━━━━━━━━━━━━`,
+    `📍 Origen: ${origen}`, `📍 Destino: ${destino}`, `📏 ${d.dist_km} km · Unidad ${d.unidad_m3} m³`, ``,
+    `💰 *TOTAL: ${fmx(precioTotal)} MXN (IVA incluido)*`, ``,
+    `━━━━━━━━━━━━━━━━━━━━`, `✅ *¿Por qué Mudanzas TML?*`,
+    `• Personal capacitado y uniformado`, `• Embalaje profesional incluido en el servicio`, `• Puntualidad y cuidado garantizados`, `• Cobertura en toda la República Mexicana`, ``,
+    `Quedamos completamente a tus órdenes para cualquier duda, ajuste o fecha que necesites. ¡Con gusto hacemos de tu mudanza una experiencia tranquila y sin preocupaciones! 😊`, ``,
+    `_Mudanzas TML — Tu mudanza, nuestra prioridad_ 🚛`,
+  ].join('\n');
+  const url = `https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`;
+  if (w) w.location = url; else window.open(url, '_blank');
+  btnWA.disabled = false; btnWA.textContent = '💬 Enviar por WhatsApp';
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:12px 20px;border-radius:10px;font-size:.85rem;z-index:9999;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:340px';
+  toast.innerHTML = '📎 PDF descargado — adjúntalo en WhatsApp tocando el clip <strong>📎</strong> en la conversación';
+  document.body.appendChild(toast); setTimeout(() => toast.remove(), 6000);
+}
+
+function nuevaCotizacion() {
+  Object.assign(S, { olat: null, olon: null, dlat: null, dlon: null, dist_km: 0, casetas: [], casetas_aviso: null, unidad: 35, m3: 20, ejesRuta: null });
+  ['origen','destino','fecha-carga','notas','cliente-nombre','cliente-tel'].forEach(id => $(id).value = '');
+  ['origen-ok','destino-ok','error-ruta','aviso-ejes'].forEach(id => $(id).style.display = 'none');
+  $('ruta-info').style.display = 'none'; $('btn-calcular-ruta').disabled = true;
+  $('casetas-panel').innerHTML = '<div style="color:var(--gray-400);text-align:center;padding:40px 0;font-size:.9rem">Ingresa origen y destino para ver las casetas de la ruta</div>';
+  ['piso-carga','piso-descarga','vuelo-piezas','vuelo-pisos','acarreo-metros','acarreo-camioneta-m3','piano-vertical','piano-media-cola','piano-cola','cubiertas-especiales',
+   'cf-chica','cf-mediana','cf-grande','cajas-libros','cajas-varios','cajas-ropero','roperos-acostados','cajas-barrica'].forEach(id => $(id).value = 0);
+  $('recoleccion-adicional').checked = false;
+  $('vol-slider').value = 20; actualizarVol(20);
+  actualizarMapa(null); mapa.setView([23.5,-102.5],5);
+  selUnidad(35); selector.limpiar(); limpiarModalIA(); irPaso(1);
+}
+$('origen').addEventListener('keydown', e => { if (e.key === 'Enter') geocodificar('origen'); });
+$('destino').addEventListener('keydown', e => { if (e.key === 'Enter') geocodificar('destino'); });
+
+// ── Inventario (sin IA de pago) ───────────────────────────────────────────
+let iaArchivos = [], iaDatos = null, selM3 = 0, selItems = [];
+const selector = TMLInventario.armarSelector($('selector-muebles'), (m3, items) => { selM3 = m3; selItems = items; $('sel-total').textContent = m3 + ' m³ · ' + items.reduce((s, i) => s + i.cantidad, 0) + ' piezas'; });
+function abrirModalIA() { $('modal-ia').classList.add('open'); }
+function cerrarModalIA() { $('modal-ia').classList.remove('open'); }
+$('modal-ia').addEventListener('click', function (e) { if (e.target === this) cerrarModalIA(); });
+function tabInv(t) {
+  ['lista','texto','fotos'].forEach(x => { $('pn-' + x).style.display = x === t ? 'block' : 'none'; $('tb-' + x).classList.toggle('on', x === t); });
+  $('ia-resultado-panel').style.display = 'none'; $('ia-error').style.display = 'none';
+}
+function ponerVolumen(m3) { const v = Math.min(Math.max(Math.round(m3), 5), 85); $('vol-slider').value = v; actualizarVol(v); }
+function aplicarSelector() {
+  if (!selM3) { alert('Marca al menos un mueble con +.'); return; }
+  ponerVolumen(selM3);
+  const n = $('notas'), lista = 'Inventario: ' + selItems.map(i => i.cantidad + ' ' + i.articulo).join(', ') + ` (≈${selM3} m³)`;
+  n.value = n.value.replace(/Inventario: [^\n]*\n?/, '').trim(); n.value = (n.value ? n.value + '\n' : '') + lista;
+  cerrarModalIA();
+}
+function dragOver(e) { e.preventDefault(); $('drop-zone').classList.add('drag-over'); }
+function dragLeave() { $('drop-zone').classList.remove('drag-over'); }
+function dropFiles(e) { e.preventDefault(); $('drop-zone').classList.remove('drag-over'); agregarArchivos(e.dataTransfer.files); }
+function agregarArchivos(files) {
+  for (const f of files) { if (!f.type.startsWith('image/')) continue; if (iaArchivos.length >= 6) break; iaArchivos.push(f); }
+  renderPreviews();
+}
+function renderPreviews() {
+  const grid = $('preview-grid'); grid.innerHTML = '';
+  iaArchivos.forEach((f, i) => { grid.innerHTML += `<div class="preview-img"><img src="${URL.createObjectURL(f)}" alt="imagen ${i+1}"><button onclick="eliminarImg(${i})">✕</button></div>`; });
+  $('ia-resultado-panel').style.display = 'none'; $('ia-error').style.display = 'none';
+  $('ia-btn-analizar-wrap').style.display = iaArchivos.length ? 'flex' : 'none';
+}
+function eliminarImg(i) { iaArchivos.splice(i, 1); renderPreviews(); }
+function limpiarModalIA() {
+  iaArchivos = []; iaDatos = null; $('preview-grid').innerHTML = ''; $('texto-inventario').value = '';
+  ['ia-resultado-panel','ia-error','ia-loader','ia-btn-analizar-wrap'].forEach(id => $(id).style.display = 'none');
+}
+function analizarTextoPegado() {
+  const t = $('texto-inventario').value.trim();
+  if (!t) { $('ia-error').textContent = 'Pega primero el texto.'; $('ia-error').style.display = 'block'; return; }
+  iaDatos = TMLInventario.analizarTexto(t); mostrarResultadoIA(iaDatos);
+}
+async function leerCapturas() {
+  if (!iaArchivos.length) return;
+  $('ia-loader').style.display = 'block'; $('ia-error').style.display = 'none'; $('ia-btn-analizar').disabled = true;
+  try {
+    const imgs = await Promise.all(iaArchivos.map(TMLInventario.fotoABase64));
+    const r = await adm('leerCapturas', imgs);
+    if (!r.texto) throw 'No se encontró texto en las imágenes. Si son fotos de muebles, usa la pestaña "Lista de muebles".';
+    iaDatos = TMLInventario.analizarTexto(r.texto); iaDatos._metodo = 'Lectura de capturas (Google Drive) + reglas';
+    mostrarResultadoIA(iaDatos);
+  } catch (e) { $('ia-error').textContent = '❌ ' + e; $('ia-error').style.display = 'block'; }
+  $('ia-loader').style.display = 'none'; $('ia-btn-analizar').disabled = false;
+}
+function mostrarResultadoIA(d) {
+  let html = `<div style="margin-bottom:12px;padding:8px 12px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;font-size:.78rem;color:#92400e">
+    ℹ️ Resultado por reglas (sin IA): revisa nombre, direcciones y m³ antes de aplicar.</div>`;
+  if (d.transcripcion) html += `<div style="margin-bottom:14px"><div style="font-size:.82rem;font-weight:700;margin-bottom:5px">💬 Texto leído:</div>
+    <div style="font-size:.78rem;padding:10px;background:#f8faff;border:1.5px solid #bfdbfe;border-radius:8px;white-space:pre-wrap;max-height:160px;overflow-y:auto;line-height:1.6">${escHtml(d.transcripcion)}</div></div>`;
+  const campo = (id, et, val, ph) => `<label style="font-size:.78rem;color:var(--gray-600);font-weight:600;margin:8px 0 3px;display:block">${et} ${val ? '<span style="color:var(--success);font-size:.72rem">(detectado — verifica)</span>' : '<span style="color:var(--gray-400);font-size:.72rem">(no detectado — escribe tú)</span>'}</label>
+    <input id="${id}" type="text" value="${escHtml(val || '')}" placeholder="${ph}" style="width:100%;padding:9px 12px;border:1.5px solid ${val ? 'var(--success)' : 'var(--gray-200)'};border-radius:8px;font-size:.85rem;background:#fff;min-height:40px">`;
+  html += campo('ia-nombre-input', '👤 Nombre del cliente', d.cliente_nombre, 'Nombre completo del cliente');
+  if (d.cliente_tel) html += `<div style="margin:8px 0;font-size:.82rem;color:var(--gray-600)">📱 Teléfono detectado: <strong>${escHtml(d.cliente_tel)}</strong></div>`;
+  if (d.inventario && d.inventario.length) {
+    html += `<div style="margin:12px 0"><div style="font-size:.82rem;font-weight:700;margin-bottom:6px">🪑 Inventario reconocido</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.8rem">
+      <thead><tr style="background:var(--primary);color:#fff"><th style="padding:6px 8px;text-align:left">Artículo</th><th style="padding:6px 8px">Cant.</th><th style="padding:6px 8px;text-align:right">m³ c/u</th><th style="padding:6px 8px;text-align:right">Total</th></tr></thead><tbody>
+      ${d.inventario.map((it, i) => `<tr style="background:${i%2?'var(--gray-50)':'#fff'}"><td style="padding:5px 8px">${escHtml(it.articulo)}</td><td style="padding:5px 8px;text-align:center">${it.cantidad}</td><td style="padding:5px 8px;text-align:right">${it.m3_unitario.toFixed(1)}</td><td style="padding:5px 8px;text-align:right;font-weight:600">${(it.cantidad*it.m3_unitario).toFixed(1)}</td></tr>`).join('')}
+      </tbody><tfoot><tr style="background:var(--gray-100);font-weight:700"><td colspan="3" style="padding:6px 8px">TOTAL ESTIMADO</td><td style="padding:6px 8px;text-align:right;color:var(--primary)">${d.m3_estimado} m³</td></tr></tfoot></table></div></div>`;
+  } else if (d.m3_estimado) html += `<div class="alert alert-info">📐 Estimado por cuartos mencionados: ~${d.m3_estimado} m³</div>`;
+  if (d.sin_reconocer && d.sin_reconocer.length) html += `<div style="font-size:.76rem;color:var(--gray-600);margin:6px 0">No reconocí: ${escHtml(d.sin_reconocer.join(' · '))} — agrégalos con la lista de muebles si cuentan.</div>`;
+  html += `<div style="margin-top:10px;font-size:.82rem;font-weight:700">📍 Direcciones:</div>`;
+  html += campo('ia-origen-input', 'Origen (de dónde se mudan)', d.origen, 'Calle, colonia, ciudad...');
+  html += campo('ia-destino-input', 'Destino (a dónde se mudan)', d.destino, 'Calle, colonia, ciudad...');
+  if (d.embalaje) html += `<div class="alert alert-info" style="margin-top:6px;font-size:.8rem">📦 Se mencionó embalaje</div>`;
+  $('ia-resultado-contenido').innerHTML = html;
+  $('ia-resultado-panel').style.display = 'block';
+}
+function aplicarDatosIA() {
+  if (!iaDatos) return;
+  const d = iaDatos, v = id => (($(id) || {}).value || '').trim();
+  if (v('ia-nombre-input')) $('cliente-nombre').value = v('ia-nombre-input');
+  if (d.cliente_tel) $('cliente-tel').value = d.cliente_tel;
+  if (d.m3_estimado) ponerVolumen(d.m3_estimado);
+  if (d.inventario && d.inventario.length) {
+    const n = $('notas'), lista = 'Inventario: ' + d.inventario.map(i => i.cantidad + ' ' + i.articulo).join(', ') + ` (≈${d.m3_estimado} m³)`;
+    n.value = n.value.replace(/Inventario: [^\n]*\n?/, '').trim(); n.value = (n.value ? n.value + '\n' : '') + lista;
+  }
+  const o = v('ia-origen-input'), de = v('ia-destino-input');
+  if (o) { $('origen').value = o; resetAddr('origen'); }
+  if (de) { $('destino').value = de; resetAddr('destino'); }
+  cerrarModalIA();
+  if (o) geocodificar('origen');
+  if (de) geocodificar('destino');
+}
+</script>
+</body>
+</html>
