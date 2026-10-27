@@ -7,7 +7,7 @@
 <title>Cotizador TML</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="inventario.js?v=20261027101447"></script>
+<script src="inventario.js?v=20261027104822"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -340,7 +340,7 @@ textarea { min-height: 80px; resize: vertical; }
 .tabla-scroll { overflow-x: auto; }
 .oculto { display: none !important; }
 </style>
-<script>(function(){var V='20261027101447';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+<script>(function(){var V='20261027104822';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
 </head>
 <body>
 
@@ -774,7 +774,7 @@ async function calcularRuta_() {
     return;
   }
   $('loader-ruta').style.display = 'none'; $('btn-calcular-ruta').disabled = false;
-  S.dist_km = d.dist_km; S.dur_min = d.dur_min; S.casetas = d.casetas; S.casetas_aviso = d.casetas_aviso || null; S.ejesRuta = ejes;
+  S.dist_km = d.dist_km; S.dur_min = d.dur_min; S.casetas = d.casetas; S.casetas_aviso = d.casetas_aviso || null; S.ejesRuta = ejes; S.casetasManual = null;
   $('aviso-ejes').style.display = 'none';
   if (d.ruta_aviso) { $('error-ruta').textContent = '💾 ' + d.ruta_aviso; $('error-ruta').style.display = 'block'; }
   actualizarMapa(d.coords); mostrarRutaInfo(); mostrarCasetasPanel(); irPaso(2);
@@ -785,11 +785,23 @@ function mostrarRutaInfo() {
   $('ruta-zona').textContent = S.dist_km <= 60 ? 'Local' : S.dist_km <= 400 ? 'Regional' : 'Nacional';
   $('ruta-info').style.display = 'flex';
 }
+const cajaManual = () => `<div style="margin-top:10px;padding:10px;border:1.5px dashed #fdba74;border-radius:8px;background:#fff7ed">
+    <label for="casetas-manual" style="margin:0 0 4px;color:#9a3412">✏️ Corregir casetas a mano — total de IDA ($)</label>
+    <input type="number" id="casetas-manual" min="0" step="1" placeholder="Déjalo vacío para usar el de la SCT" value="${S.casetasManual != null ? S.casetasManual : ''}" oninput="ponerCasetasManual(this.value)">
+    <div style="font-size:.72rem;color:#9a3412;margin-top:4px">Se cobra ida y vuelta (×2). Úsalo si conoces el monto real.</div></div>`;
+function ponerCasetasManual(v) {
+  S.casetasManual = v === '' ? null : Math.max(0, parseFloat(v) || 0);
+  const t = $('casetas-total-ida'); if (t) t.style.textDecoration = S.casetasManual != null ? 'line-through' : 'none';
+}
+/** Casetas que se mandan a cotizar: las de la SCT, o el monto escrito a mano. */
+function casetasParaCotizar() {
+  return S.casetasManual != null ? [{ nombre: 'Casetas (monto a mano)', tarifa: S.casetasManual }] : S.casetas;
+}
 function mostrarCasetasPanel() {
   const p = $('casetas-panel');
   if (!S.casetas.length) {
-    p.innerHTML = S.casetas_aviso ? `<div class="alert alert-warn" style="margin:8px">⚠️ No se pudieron obtener las casetas desde la SCT: ${escHtml(S.casetas_aviso)}</div>`
-      : '<div style="color:var(--gray-400);text-align:center;padding:20px">Sin casetas identificadas en la ruta</div>';
+    p.innerHTML = (S.casetas_aviso ? `<div class="alert" style="margin:8px 0;background:#fef2f2;color:#991b1b;border:1.5px solid #fca5a5">⛔ <b>No llegaron las casetas de la SCT</b> (${escHtml(S.casetas_aviso)}). Vuelve a dar <b>Calcular ruta</b> o escribe el monto abajo.</div>`
+      : '<div style="color:var(--gray-400);text-align:center;padding:20px">Sin casetas en la ruta (ruta local o libre)</div>') + cajaManual();
     return;
   }
   const ejes = S.ejesRuta || (S.unidad === 35 ? 2 : 3), total = S.casetas.reduce((a,c)=>a+c.tarifa,0);
@@ -802,10 +814,11 @@ function mostrarCasetasPanel() {
   });
   html += '</div>';
   if (S.casetas.some(c => c.incierto)) html += `<div class="alert alert-warn" style="margin-top:8px">⚠️ Una o más casetas (marcadas arriba) tienen varias tarifas posibles en la misma zona — confírmalas a mano antes de enviar la cotización.</div>`;
-  html += `<div class="casetas-total"><span>Total ida (${S.casetas.length} casetas)</span><span style="color:var(--accent)">$${total.toFixed(0)}</span></div>`;
+  html += `<div class="casetas-total"><span>Total ida (${S.casetas.length} casetas)</span><span style="color:var(--accent)" id="casetas-total-ida">$${total.toFixed(0)}</span></div>`;
   html += `<div class="casetas-total" style="background:#fff3e0"><span>Total ida + vuelta</span><span style="color:var(--accent);font-size:1rem">$${(total*2).toFixed(0)}</span></div>`;
   html += `<div class="alert alert-info" style="margin-top:8px">Unidad C${ejes} · ${S.dist_km} km · Casetas con tarifa por eje correspondiente</div>`;
-  p.innerHTML = html;
+  p.innerHTML = html + cajaManual();
+  ponerCasetasManual(S.casetasManual == null ? '' : String(S.casetasManual));
 }
 
 // ── Unidad ────────────────────────────────────────────────────────────────
@@ -839,9 +852,11 @@ async function generarCotizacion() {
     if (!S.dist_km) { $('aviso-sin-ruta').style.display = 'block'; return; }
   }
   $('aviso-sin-ruta').style.display = 'none';
+  if (!S.casetas.length && S.casetasManual == null && S.dist_km > 60
+      && !confirm('Esta ruta no tiene casetas (' + (S.casetas_aviso || 'la SCT no devolvió ninguna') + ').\n\n¿Cotizar SIN casetas? Pulsa Cancelar para escribir el monto a mano en el cuadro de casetas.')) return;
   const num = id => parseInt($(id).value) || 0;
   const payload = {
-    unidad: S.unidad, dist_km: S.dist_km, casetas: S.casetas, m3_estimado: S.m3,
+    unidad: S.unidad, dist_km: S.dist_km, casetas: casetasParaCotizar(), m3_estimado: S.m3,
     recoleccion_adicional: $('recoleccion-adicional').checked,
     piso_carga: num('piso-carga'), piso_descarga: num('piso-descarga'), vuelo_piezas: num('vuelo-piezas'), vuelo_pisos: num('vuelo-pisos'),
     acarreo_metros: num('acarreo-metros'), acarreo_camioneta_m3: num('acarreo-camioneta-m3'),
@@ -1005,7 +1020,7 @@ async function compartirWA() {
 }
 
 function nuevaCotizacion() {
-  Object.assign(S, { olat: null, olon: null, dlat: null, dlon: null, dist_km: 0, casetas: [], casetas_aviso: null, unidad: 35, m3: 20, ejesRuta: null });
+  Object.assign(S, { olat: null, olon: null, dlat: null, dlon: null, dist_km: 0, casetas: [], casetas_aviso: null, unidad: 35, m3: 20, ejesRuta: null, casetasManual: null });
   ['origen','destino','fecha-carga','notas','cliente-nombre','cliente-tel'].forEach(id => $(id).value = '');
   ['origen-ok','destino-ok','error-ruta','aviso-ejes'].forEach(id => $(id).style.display = 'none');
   $('ruta-info').style.display = 'none'; $('btn-calcular-ruta').disabled = true;
