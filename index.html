@@ -7,7 +7,7 @@
 <title>Cotizador TML</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="inventario.js?v=20261027105801"></script>
+<script src="inventario.js?v=20261027152335"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -341,7 +341,7 @@ textarea { min-height: 80px; resize: vertical; }
 .tabla-scroll { overflow-x: auto; }
 .oculto { display: none !important; }
 </style>
-<script>(function(){var V='20261027105801';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+<script>(function(){var V='20261027152335';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
 </head>
 <body>
 
@@ -903,13 +903,29 @@ async function generarCotizacion_(ejes) {
 }
 function fmx(n) { return '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0}); }
 
-function mostrarCotizacion(d) {
-  const folio = 'CTZ-' + Date.now().toString().slice(-6);
+// IVA: con IVA, empresa (IVA con retención del 4% al autotransporte) o sin IVA.
+const MODOS_IVA = {
+  iva: { f: 1.16, iva: 0.16, ret: 0,    et: 'Con IVA (16%)' },
+  ret: { f: 1.12, iva: 0.16, ret: 0.04, et: 'Empresa: IVA 16% con retención 4%' },
+  sin: { f: 1,    iva: 0,    ret: 0,    et: 'Sin IVA' },
+};
+S.modoIva = 'iva';
+const TXT_IVA_WA = { iva: 'IVA incluido', ret: 'IVA incluido, con retención 4%', sin: 'sin IVA' };
+const r2 = n => Math.round(n * 100) / 100;
+function conModoIva(d, subtotal) {
+  const m = MODOS_IVA[S.modoIva], sub = subtotal != null ? subtotal : d.subtotal;
+  const iva = r2(sub * m.iva), ret_iva = r2(sub * m.ret);
+  return Object.assign({}, d, { subtotal: sub, iva, ret_iva, total: r2(sub + iva - ret_iva), modo_iva: S.modoIva });
+}
+function cambiarModoIva(v) { S.modoIva = v; const cd = window._cotData; if (cd) mostrarCotizacion(cd.d0, true); }
+function mostrarCotizacion(d0, mismoFolio) {
+  const d = conModoIva(d0), m = MODOS_IVA[S.modoIva];
+  const folio = mismoFolio && window._cotData ? window._cotData.folio : 'CTZ-' + Date.now().toString().slice(-6);
   const fecha = new Date().toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'});
   const cliente = $('cliente-nombre').value || '—', tel = $('cliente-tel').value || '—', notas = $('notas').value || '';
   const origen = $('origen').value, destino = $('destino').value;
   const zonaLabel = {local:'Local',regional:'Regional',nacional:'Nacional'}[d.zona];
-  window._cotData = { d, folio, fecha, cliente, tel, origen, destino };
+  window._cotData = { d, d0, folio, fecha, cliente, tel, origen, destino };
 
   const minTag = d.aplico_minimo ? ' <em style="color:var(--gray-400);font-size:.8em">(precio mínimo)</em>' : '';
   let rows = `<tr><td>🚛 Flete ${d.unidad_m3} m³ · ${d.dist_km} km${minTag}</td><td>${fmx(d.flete)}</td></tr>
@@ -937,9 +953,16 @@ function mostrarCotizacion(d) {
       ${rows}
       <tr class="subtotal"><td colspan="2" style="height:4px"></td></tr>
       <tr class="iva-row"><td>Subtotal</td><td>${fmx(d.subtotal)}</td></tr>
-      <tr class="iva-row"><td>IVA 16%</td><td>${fmx(d.iva)}</td></tr>
-      <tr class="total-row"><td>TOTAL</td><td>${fmx(d.total)}</td></tr>
+      ${d.iva ? `<tr class="iva-row"><td>IVA 16%</td><td>${fmx(d.iva)}</td></tr>` : ''}
+      ${d.ret_iva ? `<tr class="iva-row"><td>Retención IVA 4%</td><td>−${fmx(d.ret_iva)}</td></tr>` : ''}
+      <tr class="total-row"><td>TOTAL${S.modoIva === 'sin' ? ' (sin IVA)' : ''}</td><td>${fmx(d.total)}</td></tr>
     </table>
+    <div class="no-print" style="margin-top:12px;padding:12px 14px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px">
+      <div style="font-weight:700;font-size:.85rem;margin-bottom:8px;color:var(--primary)">🧾 ¿Cómo se factura?</div>
+      ${Object.keys(MODOS_IVA).map(k => `<label style="display:flex;align-items:center;gap:8px;margin:6px 0;font-weight:600;color:var(--gray-800);cursor:pointer">
+        <input type="radio" name="modo-iva" value="${k}" ${k === S.modoIva ? 'checked' : ''} onchange="cambiarModoIva(this.value)" style="-webkit-appearance:auto;appearance:auto;width:20px;height:20px;min-height:auto;flex-shrink:0">${MODOS_IVA[k].et}</label>`).join('')}
+      <div style="font-size:.74rem;color:var(--gray-600);margin-top:4px">El PDF sale con el IVA y la retención que elijas aquí.</div>
+    </div>
     <div class="no-print" style="margin-top:14px;padding:14px;background:#fff7ed;border:1.5px solid #fdba74;border-radius:10px">
       <div style="font-weight:700;font-size:.85rem;margin-bottom:8px;color:#9a3412">⛽ Gastos del viaje (solo para ti, no salen en el PDF)</div>
       <table class="desglose">
@@ -958,17 +981,21 @@ function mostrarCotizacion(d) {
         <div style="background:#fff;border-radius:8px;padding:8px"><div style="font-size:.72rem;color:var(--gray-600)">Margen</div><div style="font-weight:700;color:var(--success)" id="cot-margen">${d.flete > 0 ? Math.round((d.flete - d.costos_servicio) / d.flete * 100) : 0}%</div></div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <label style="font-size:.82rem;font-weight:600;color:#166534;margin:0;white-space:nowrap">Total a cobrar (IVA inc.):</label>
+        <label style="font-size:.82rem;font-weight:600;color:#166534;margin:0;white-space:nowrap">Total a cobrar (${m.et}):</label>
         <input type="number" id="precio-manual" value="${d.total}" min="0" step="100" style="width:140px;padding:8px 10px;border:2px solid #86efac;border-radius:8px;font-size:.95rem;font-weight:700;color:#166534;text-align:right" oninput="actualizarPrecioManual(this.value)">
         <button onclick="resetPrecioManual()" style="background:none;border:1.5px solid #86efac;border-radius:6px;padding:7px 10px;font-size:.78rem;cursor:pointer;color:#166534">↩ Restablecer</button>
       </div>
-      <div style="font-size:.75rem;color:#166534;margin-top:6px" id="precio-manual-nota">Subtotal: ${fmx(d.subtotal)} · IVA 16%: ${fmx(d.iva)}</div>
+      <div style="font-size:.75rem;color:#166534;margin-top:6px" id="precio-manual-nota">${notaPrecio(d)}</div>
     </div>
     <div class="alert alert-info" style="margin-top:10px;font-size:.8rem">✅ Cotización válida por 7 días · Embalaje se ajusta al finalizar el empaque · Sujeto a visita de estimación</div>`;
 }
+function notaPrecio(d) { return `Subtotal: ${fmx(d.subtotal)}` + (d.iva ? ` · IVA 16%: ${fmx(d.iva)}` : '') + (d.ret_iva ? ` · Retención 4%: −${fmx(d.ret_iva)}` : ''); }
+/** Total escrito a mano → subtotal según el modo de IVA elegido. */
+function desdeTotal(d, total) { const x = conModoIva(d, r2(total / MODOS_IVA[S.modoIva].f)); x.total = total; return x; }
 function actualizarPrecioManual(val) {
-  const nuevo_total = parseFloat(val) || 0, nuevo_sub = Math.round(nuevo_total / 1.16), nuevo_iva = nuevo_total - nuevo_sub;
-  $('precio-manual-nota').textContent = `Subtotal: ${fmx(nuevo_sub)} · IVA 16%: ${fmx(nuevo_iva)}`;
+  const cd0 = window._cotData; if (!cd0) return;
+  const x = desdeTotal(cd0.d, parseFloat(val) || 0), nuevo_sub = x.subtotal;
+  $('precio-manual-nota').textContent = notaPrecio(x);
   const cd = window._cotData;
   if (cd) {
     const nuevo_flete = Math.max(0, nuevo_sub - (cd.d.costo_maniobras_total || 0)), util = nuevo_flete - (cd.d.costos_servicio || 0);
@@ -994,8 +1021,8 @@ function _payloadExport() {
   if (pm) {
     const nuevo_total = parseFloat(pm.value) || cot.total;
     if (Math.abs(nuevo_total - cot.total) > 1) {
-      const nuevo_sub = Math.round(nuevo_total / 1.16);
-      cot = Object.assign({}, cot, { flete: Math.max(0, nuevo_sub - (cot.costo_maniobras_total || 0)), subtotal: nuevo_sub, iva: nuevo_total - nuevo_sub, total: nuevo_total, precio_ajustado: true });
+      const x = desdeTotal(cot, nuevo_total);
+      cot = Object.assign(x, { flete: Math.max(0, x.subtotal - (cot.costo_maniobras_total || 0)), precio_ajustado: true });
     }
   }
   return { folio: cd.folio, origen: $('origen').value, destino: $('destino').value, cliente_nombre: $('cliente-nombre').value,
@@ -1036,7 +1063,7 @@ async function compartirWA() {
     `Es un placer para *Mudanzas TML* atenderte. Adjunto encontrarás la cotización formal para tu mudanza ${zonaLabel}. 📋`, ``,
     `━━━━━━━━━━━━━━━━━━━━`, `🚛 *Cotización ${folio}*`, `━━━━━━━━━━━━━━━━━━━━`,
     `📍 Origen: ${origen}`, `📍 Destino: ${destino}`, `📏 ${d.dist_km} km · Unidad ${d.unidad_m3} m³`, ``,
-    `💰 *TOTAL: ${fmx(precioTotal)} MXN (IVA incluido)*`, ``,
+    `💰 *TOTAL: ${fmx(precioTotal)} MXN (${TXT_IVA_WA[S.modoIva]})*`, ``,
     `━━━━━━━━━━━━━━━━━━━━`, `✅ *¿Por qué Mudanzas TML?*`,
     `• Personal capacitado y uniformado`, `• Embalaje profesional incluido en el servicio`, `• Puntualidad y cuidado garantizados`, `• Cobertura en toda la República Mexicana`, ``,
     `Quedamos completamente a tus órdenes para cualquier duda, ajuste o fecha que necesites. ¡Con gusto hacemos de tu mudanza una experiencia tranquila y sin preocupaciones! 😊`, ``,
@@ -1052,7 +1079,7 @@ async function compartirWA() {
 }
 
 function nuevaCotizacion() {
-  Object.assign(S, { olat: null, olon: null, dlat: null, dlon: null, dist_km: 0, casetas: [], casetas_aviso: null, unidad: 35, m3: 20, ejesRuta: null, casetasManual: null });
+  Object.assign(S, { olat: null, olon: null, dlat: null, dlon: null, dist_km: 0, casetas: [], casetas_aviso: null, unidad: 35, m3: 20, ejesRuta: null, casetasManual: null, modoIva: 'iva' });
   ['origen','destino','fecha-carga','notas','cliente-nombre','cliente-tel'].forEach(id => $(id).value = '');
   ['origen-ok','destino-ok','error-ruta','aviso-ejes'].forEach(id => $(id).style.display = 'none');
   $('ruta-info').style.display = 'none'; $('btn-calcular-ruta').disabled = true;
