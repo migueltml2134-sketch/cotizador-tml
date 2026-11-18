@@ -7,7 +7,7 @@
 <title>Cotizador TML</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="inventario.js?v=20261117222724"></script>
+<script src="inventario.js?v=20261117224454"></script>
 <!-- Firebase Auth: mismas cuentas que el sistema de mudanzastml.mx (proyecto tml-liquidaciones) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -344,7 +344,7 @@ textarea { min-height: 80px; resize: vertical; }
 .tabla-scroll { overflow-x: auto; }
 .oculto { display: none !important; }
 </style>
-<script>(function(){var V='20261117222724';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+<script>(function(){var V='20261117224454';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
 </head>
 <body>
 
@@ -518,6 +518,8 @@ textarea { min-height: 80px; resize: vertical; }
             <div style="font-size:.76rem;color:#166534;margin:10px 0">Si se necesita camioneta para hacer viajes (27 m³ c/u, $3,000 por viaje):</div>
             <label style="margin-top:0">m³ a mover en camioneta</label>
             <input type="number" id="acarreo-camioneta-m3" min="0" value="0">
+            <label for="acarreo-camioneta-monto">o escribe el monto del acarreo en camioneta ($) — si lo pones, se usa este</label>
+            <input type="number" id="acarreo-camioneta-monto" min="0" step="100" placeholder="Vacío = se calcula por m³">
           </div>
 
           <div class="extra-block" style="background:#fdf2f8;border:1.5px solid #f9a8d4;">
@@ -961,6 +963,7 @@ async function generarCotizacion_(ejes) {
     recoleccion_monto: $('recoleccion-adicional').checked && $('recoleccion-monto').value !== '' ? parseFloat($('recoleccion-monto').value) || 0 : null,
     piso_carga: num('piso-carga'), piso_descarga: num('piso-descarga'), vuelo_piezas: num('vuelo-piezas'), vuelo_pisos: num('vuelo-pisos'),
     acarreo_metros: num('acarreo-metros'), acarreo_camioneta_m3: num('acarreo-camioneta-m3'),
+    acarreo_camioneta_monto: $('acarreo-camioneta-monto').value === '' ? null : Math.max(0, parseFloat($('acarreo-camioneta-monto').value) || 0),
     pianos_vertical: num('piano-vertical'), pianos_media_cola: num('piano-media-cola'), pianos_cola: num('piano-cola'), cubiertas_especiales: num('cubiertas-especiales'),
     cf_chica: num('cf-chica'), cf_mediana: num('cf-mediana'), cf_grande: num('cf-grande'),
     cajas_libros: num('cajas-libros'), cajas_varios: num('cajas-varios'), cajas_ropero: num('cajas-ropero'), roperos_acostados: num('roperos-acostados'), cajas_barrica: num('cajas-barrica'),
@@ -1000,7 +1003,8 @@ function mostrarCotizacion(d0, mismoFolio) {
   if (d.costo_recoleccion)          rows += `<tr><td>🚚 Recolección adicional</td><td>${fmx(d.costo_recoleccion)}</td></tr>`;
   if (d.costo_maniobras_especiales) rows += `<tr><td>🎹 Maniobras especiales (pianos, cajas fuertes, cubiertas)</td><td>${fmx(d.costo_maniobras_especiales)}</td></tr>`;
   if (d.costo_vuelo)                rows += `<tr><td>🏗️ Vuelo de muebles (${d.vuelo_piezas} pieza(s) × ${d.vuelo_pisos} piso(s))</td><td>${fmx(d.costo_vuelo)}</td></tr>`;
-  if (d.costo_acarreos)             rows += `<tr><td>🚶 Acarreos</td><td>${fmx(d.costo_acarreos)}</td></tr>`;
+  if (d.costo_acarreo_distancia)    rows += `<tr><td>🚶 Acarreos</td><td>${fmx(d.costo_acarreo_distancia)}</td></tr>`;
+  if (d.costo_acarreo_camioneta)    rows += `<tr><td>🚐 Acarreo en camioneta</td><td>${fmx(d.costo_acarreo_camioneta)}</td></tr>`;
   if (d.costo_pisos)                rows += `<tr><td>🪜 Pisos de escalera (${d.piso_carga} carga + ${d.piso_descarga} descarga)</td><td>${fmx(d.costo_pisos)}</td></tr>`;
   if (d.costo_embalaje)             rows += `<tr><td>📦 Embalaje est. <em style="color:var(--gray-400);font-size:.8em">ajustable</em></td><td>${fmx(d.costo_embalaje)}</td></tr>`;
 
@@ -1151,6 +1155,7 @@ function nuevaCotizacion() {
   ['origen-ok','destino-ok','error-ruta','aviso-ejes'].forEach(id => $(id).style.display = 'none');
   $('ruta-info').style.display = 'none'; $('btn-calcular-ruta').disabled = true;
   $('casetas-panel').innerHTML = '<div style="color:var(--gray-400);text-align:center;padding:40px 0;font-size:.9rem">Ingresa origen y destino para ver las casetas de la ruta</div>';
+  $('acarreo-camioneta-monto').value = '';
   ['piso-carga','piso-descarga','vuelo-piezas','vuelo-pisos','acarreo-metros','acarreo-camioneta-m3','piano-vertical','piano-media-cola','piano-cola','cubiertas-especiales',
    'cf-chica','cf-mediana','cf-grande','cajas-libros','cajas-varios','cajas-ropero','roperos-acostados','cajas-barrica'].forEach(id => $(id).value = 0);
   $('recoleccion-adicional').checked = false; toggleRecoleccion();
