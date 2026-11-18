@@ -7,7 +7,7 @@
 <title>Cotizador TML</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="inventario.js?v=20261117224454"></script>
+<script src="inventario.js?v=20261118094001"></script>
 <!-- Firebase Auth: mismas cuentas que el sistema de mudanzastml.mx (proyecto tml-liquidaciones) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -343,8 +343,20 @@ textarea { min-height: 80px; resize: vertical; }
 #pantalla-leads td { padding: 9px 10px; font-size: .82rem; border-bottom: 1px solid var(--gray-100); vertical-align: top; }
 .tabla-scroll { overflow-x: auto; }
 .oculto { display: none !important; }
+
+/* ── Barra de módulos del sistema (ver <nav class="tml-modulos"> arriba) ── */
+.tml-modulos {
+  background: var(--primary-dark); display: flex; flex-wrap: wrap;
+  gap: 2px; padding: 6px 16px; position: sticky; top: 60px; z-index: 99;
+}
+.tml-modulos a {
+  color: rgba(255,255,255,.85); text-decoration: none; font-size: .74rem;
+  font-weight: 600; padding: 5px 9px; border-radius: 6px; white-space: nowrap;
+}
+.tml-modulos a:hover { background: rgba(255,255,255,.12); color: #fff; }
+.tml-modulos a.activo { background: rgba(255,255,255,.22); color: #fff; }
 </style>
-<script>(function(){var V='20261117224454';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+<script>(function(){var V='20261118094001';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
 </head>
 <body>
 
@@ -356,6 +368,29 @@ textarea { min-height: 80px; resize: vertical; }
     <a href="#" class="btn-logout" onclick="cerrarSesion();return false">🔒 Salir</a>
   </div>
 </header>
+<!-- Barra de módulos del sistema de Mudanzas TML — mismos links que trae
+     cada módulo (ing.html, liq.html, etc.) en su <nav>, para que el
+     Cotizador se sienta parte del mismo sistema en vez de un sitio aparte.
+     Ojo: esto NO comparte la sesión de Firebase Auth entre subdominios
+     (eso es una limitación de arquitectura, no de este menú) — cada
+     módulo, incluido este, sigue pidiendo su propio inicio de sesión.
+     Se muestra/oculta junto con #header-acciones (ver mostrarLogin()/
+     mostrarPanel() más abajo). -->
+<nav class="tml-modulos oculto" id="tml-modulos">
+  <a href="https://anticipos.mudanzastml.mx">📋 Anticipos</a>
+  <a href="https://cxc.mudanzastml.mx">📄 Ingresos</a>
+  <a href="https://cxc.mudanzastml.mx/maniobras.html">✅ Maniobras</a>
+  <a href="https://liquidaciones.mudanzastml.mx">🚛 Liquidaciones</a>
+  <a href="https://nomina.mudanzastml.mx">🧾 Nómina</a>
+  <a href="https://incidentes.mudanzastml.mx">🚨 Incidentes</a>
+  <a href="https://historial.mudanzastml.mx">🗂️ Historial</a>
+  <a href="https://autorizaciones.mudanzastml.mx">🔐 Autorizaciones</a>
+  <a href="https://precarga.mudanzastml.mx">📥 Pre-carga</a>
+  <a href="https://usuarios.mudanzastml.mx">👤 Usuarios</a>
+  <a href="https://usuarios.mudanzastml.mx/flota.html">🚚 Flota</a>
+  <a href="https://proveedores.mudanzastml.mx">🧾 Proveedores</a>
+  <a href="https://cotizador.mudanzastml.mx" class="activo">🧮 Cotizador</a>
+</nav>
 
 <!-- ENTRADA -->
 <div id="pantalla-login">
@@ -681,11 +716,11 @@ function escHtml(str) { return String(str == null ? '' : str).replace(/&/g,'&amp
 let EMPRESA_TEL = '';
 function mostrarLogin(msg) {
   $('pantalla-login').classList.remove('oculto'); $('pantalla-cotizador').classList.add('oculto');
-  $('pantalla-leads').style.display = 'none'; $('header-acciones').classList.add('oculto');
+  $('pantalla-leads').style.display = 'none'; $('header-acciones').classList.add('oculto'); $('tml-modulos').classList.add('oculto');
   if (msg) { $('error-login').textContent = msg; $('error-login').classList.remove('oculto'); }
 }
 function mostrarPanel(res) {
-  $('pantalla-login').classList.add('oculto'); $('pantalla-cotizador').classList.remove('oculto'); $('header-acciones').classList.remove('oculto');
+  $('pantalla-login').classList.add('oculto'); $('pantalla-cotizador').classList.remove('oculto'); $('header-acciones').classList.remove('oculto'); $('tml-modulos').classList.remove('oculto');
   if (res) { EMPRESA_TEL = res.telefono || ''; $('btn-leads').textContent = '📋 Leads' + (res.leadsHoy ? ' · ' + res.leadsHoy + ' hoy' : ''); }
   if (!mapa) initMapa(); else setTimeout(() => mapa.invalidateSize(), 50);
 }
@@ -755,7 +790,47 @@ function cerrarSesion() {
   try { localStorage.removeItem('tml_cot_token'); } catch (e) {}
   mostrarLogin();
 }
-if (TOKEN) adm('resumen').then(mostrarPanel, () => mostrarLogin()); else mostrarLogin();
+
+// ── Sesión compartida (SSO) al entrar desde el menú de otro módulo de TML ──
+// Ver generarTokenSSO/canjearTokenSSO en functions/index.js del repo
+// tml-liquidaciones: el código en ?sso= es de un solo uso y vence en 60 s,
+// se canjea por un Custom Token de Firebase Auth para el mismo usuario —
+// desde aquí se usa exactamente igual que si hubiera escrito su
+// correo/contraseña (mismo paso 'entrarFirebase' del servidor).
+const URL_CANJEAR_SSO = 'https://us-central1-tml-liquidaciones.cloudfunctions.net/canjearTokenSSO';
+async function entrarConSSO(code) {
+  try {
+    const r = await fetch(URL_CANJEAR_SSO, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code }) });
+    const data = await r.json();
+    if (!r.ok || !data.customToken) throw new Error((data && data.error) || 'No se pudo entrar con sesión compartida.');
+    const auth = authFB();
+    await auth.setPersistence(firebase.auth.Auth.Persistence.NONE);
+    const cred = await auth.signInWithCustomToken(data.customToken);
+    const idToken = await cred.user.getIdToken();
+    const r2 = await api('entrarFirebase', idToken);
+    TOKEN = r2.token; try { localStorage.setItem('tml_cot_token', TOKEN); } catch (e) {}
+    mostrarPanel(r2.resumen);
+    return true;
+  } catch (e) {
+    console.error('entrarConSSO:', e);
+    return false;
+  }
+}
+(function () {
+  var ssoCode = new URLSearchParams(location.search).get('sso');
+  if (ssoCode) {
+    // Se quita de la URL de inmediato — un código es de un solo uso, y no
+    // queremos que quede visible ni se reintente si recargan la página.
+    history.replaceState(null, '', location.pathname);
+    entrarConSSO(ssoCode).then(function (ok) {
+      if (!ok) { if (TOKEN) adm('resumen').then(mostrarPanel, () => mostrarLogin()); else mostrarLogin(); }
+    });
+  } else if (TOKEN) {
+    adm('resumen').then(mostrarPanel, () => mostrarLogin());
+  } else {
+    mostrarLogin();
+  }
+})();
 
 // ── Leads ─────────────────────────────────────────────────────────────────
 async function verLeads() {
