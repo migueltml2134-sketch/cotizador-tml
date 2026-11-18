@@ -7,7 +7,10 @@
 <title>Cotizador TML</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="inventario.js?v=20261027152335"></script>
+<script src="inventario.js?v=20261117204724"></script>
+<!-- Firebase Auth (mismas cuentas que el sistema de liquidaciones de mudanzastml.mx) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -341,7 +344,7 @@ textarea { min-height: 80px; resize: vertical; }
 .tabla-scroll { overflow-x: auto; }
 .oculto { display: none !important; }
 </style>
-<script>(function(){var V='20261027152335';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+<script>(function(){var V='20261117204724';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
 </head>
 <body>
 
@@ -358,10 +361,23 @@ textarea { min-height: 80px; resize: vertical; }
 <div id="pantalla-login">
   <div class="card"><div class="card-body">
     <h2>🔒 Panel de cotizaciones</h2>
-    <label for="clave">Contraseña</label>
-    <input type="password" id="clave" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrarPanel()">
+    <div id="login-firebase">
+      <label for="correo">Correo</label>
+      <input type="email" id="correo" autocomplete="username" onkeydown="if(event.key==='Enter')$('clave-fb').focus()">
+      <label for="clave-fb" style="margin-top:12px">Contraseña</label>
+      <input type="password" id="clave-fb" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrarFirebase()">
+    </div>
+    <div id="login-anterior" class="oculto">
+      <label for="clave">Contraseña general (método anterior)</label>
+      <input type="password" id="clave" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrarPanel()">
+    </div>
     <div id="error-login" class="alert alert-warn oculto"></div>
-    <div class="btn-row"><button class="btn btn-primary btn-lg" id="btn-entrar" onclick="entrarPanel()">Entrar</button></div>
+    <div class="btn-row"><button class="btn btn-primary btn-lg" id="btn-entrar" onclick="entrarSegunModo()">Entrar</button></div>
+    <div style="margin-top:14px;font-size:.8rem;text-align:center;line-height:1.8">
+      <a href="#" id="link-olvide" onclick="olvideClave();return false">¿Olvidaste tu contraseña?</a><br>
+      <!-- TRANSICIÓN: quitar este link (y entrarPanel/'entrar') cuando todos entren con su usuario -->
+      <a href="#" id="link-modo" onclick="cambiarModoLogin();return false" style="color:var(--gray-400)">Entrar con la contraseña general (método anterior)</a>
+    </div>
   </div></div>
 </div>
 
@@ -680,6 +696,66 @@ async function entrarPanel() {
     $('clave').value = ''; mostrarPanel(r.resumen);
   } catch (e) { $('error-login').textContent = e; $('error-login').classList.remove('oculto'); }
   b.disabled = false;
+}
+// Usuario + contraseña con Firebase Auth (proyecto tml-liquidaciones, las mismas
+// cuentas que el sistema de liquidaciones). Firebase solo comprueba correo y
+// contraseña; el Apps Script ('entrarFirebase') revisa el token con Google y que
+// el usuario tenga permiso de cotizador, y regresa el mismo {token, resumen} que
+// 'entrar'. La sesión de Firebase no se guarda en el navegador: después de
+// entrar, el panel usa el token de sesión del Apps Script como siempre.
+const FB_CONFIG = { apiKey: 'AIzaSyDqlhREJFVFLGzz7bVlPcNl1Uba9HI3r8s', authDomain: 'tml-liquidaciones.firebaseapp.com',
+  projectId: 'tml-liquidaciones', appId: '1:268455373953:web:ad359c5dbcba9f53557180' };
+let fbAuth = null;
+function authFB() {
+  if (fbAuth) return fbAuth;
+  if (typeof firebase === 'undefined') throw 'No se pudo cargar el inicio de sesión. Revisa tu internet y recarga la página.';
+  if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+  fbAuth = firebase.auth(); fbAuth.languageCode = 'es';
+  return fbAuth;
+}
+function msgErrorFB(e) {
+  const c = (e && e.code) || '';
+  if (/invalid-credential|wrong-password|user-not-found|invalid-login/.test(c)) return 'Correo o contraseña incorrectos.';
+  if (c.includes('invalid-email')) return 'Escribe un correo válido.';
+  if (c.includes('user-disabled')) return 'Tu cuenta está desactivada. Pide al administrador que la reactive.';
+  if (c.includes('too-many-requests')) return 'Demasiados intentos fallidos. Espera unos minutos o restablece tu contraseña.';
+  if (c.includes('network-request-failed')) return 'Sin conexión a internet. Intenta de nuevo.';
+  if (c.includes('unauthorized-domain') || c.includes('requests-from-referer')) return 'Este sitio aún no está autorizado en Firebase. Avisa al administrador.';
+  return (e && e.message) || String(e);
+}
+let modoAnterior = false;
+function cambiarModoLogin() {
+  modoAnterior = !modoAnterior;
+  $('login-firebase').classList.toggle('oculto', modoAnterior); $('login-anterior').classList.toggle('oculto', !modoAnterior);
+  $('link-olvide').classList.toggle('oculto', modoAnterior);
+  $('link-modo').textContent = modoAnterior ? 'Entrar con mi correo y contraseña' : 'Entrar con la contraseña general (método anterior)';
+  $('error-login').classList.add('oculto');
+}
+function entrarSegunModo() { modoAnterior ? entrarPanel() : entrarFirebase(); }
+async function entrarFirebase() {
+  const correo = $('correo').value.trim(), clave = $('clave-fb').value;
+  const err = m => { $('error-login').textContent = m; $('error-login').classList.remove('oculto'); };
+  if (!correo || !clave) { err('Escribe tu correo y tu contraseña.'); return; }
+  const b = $('btn-entrar'); b.disabled = true; $('error-login').classList.add('oculto');
+  try {
+    const auth = authFB();
+    await auth.setPersistence(firebase.auth.Auth.Persistence.NONE);
+    let cred;
+    try { cred = await auth.signInWithEmailAndPassword(correo, clave); } catch (e) { throw msgErrorFB(e); }
+    const idToken = await cred.user.getIdToken();
+    auth.signOut().catch(() => {});
+    const r = await api('entrarFirebase', idToken);
+    TOKEN = r.token; try { localStorage.setItem('tml_cot_token', TOKEN); } catch (e) {}
+    $('clave-fb').value = ''; mostrarPanel(r.resumen);
+  } catch (e) { err(e); }
+  b.disabled = false;
+}
+async function olvideClave() {
+  const correo = $('correo').value.trim();
+  const err = m => { $('error-login').textContent = m; $('error-login').classList.remove('oculto'); };
+  if (!correo) { err('Escribe tu correo arriba y vuelve a dar clic en "¿Olvidaste tu contraseña?".'); return; }
+  try { await authFB().sendPasswordResetEmail(correo); err('Si el correo tiene cuenta, te llegará un mensaje para crear una contraseña nueva. Revisa también spam.'); }
+  catch (e) { err(typeof e === 'string' ? e : msgErrorFB(e)); }
 }
 function cerrarSesion() {
   api('salir', TOKEN).catch(() => {}); TOKEN = '';
