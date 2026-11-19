@@ -1,0 +1,210 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Tema visual del sistema Mudanzas TML — mismo look que mudanzastml.mx y
+   sus módulos (anticipos, liquidaciones, etc.).
+
+   Los valores salieron del CSS en producción de anticipos.mudanzastml.mx,
+   para que el Cotizador no se vea como un sitio aparte.
+
+   Se carga DESPUÉS del <style> de cada página: aquí solo van colores y
+   presentación. Nada de layout nuevo, ids ni clases que use el JS.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --tml-navy:     #1a1a2e;   /* header, encabezados de tabla, texto principal */
+  --tml-navy-2:   #16213e;
+  --tml-red:      #e63946;   /* marca: botones principales, acentos */
+  --tml-red-dark: #c1121f;   /* hover del botón principal */
+  --tml-green:    #2d6a4f;   /* acciones positivas */
+  --tml-bg:       #f0f2f5;   /* fondo de página */
+  --tml-card:     #ffffff;
+  --tml-border:   #ddddee;   /* bordes de inputs y badges */
+  --tml-input-bg: #fafafa;
+  --tml-muted:    #666666;   /* etiquetas */
+  --tml-muted-2:  #888888;   /* subtextos */
+  --tml-muted-3:  #aaaaaa;   /* links secundarios */
+  --tml-gold:     #ffd166;   /* totales sobre barras navy */
+
+  /* Las variables que ya usaban las páginas apuntan ahora al tema TML,
+     así el cambio alcanza todo sin tocar cada regla una por una. */
+  --primary:      #1a1a2e;
+  --primary-dark: #16213e;
+  --accent:       #e63946;
+  --success:      #2d6a4f;
+  --gray-50:      #fafafa;
+  --gray-100:     #f0f2f5;
+  --gray-200:     #ddddee;
+  --gray-400:     #aaaaaa;
+  --gray-600:     #666666;
+  --gray-800:     #1a1a2e;
+  --shadow:       0 2px 12px rgba(0,0,0,.07);
+  --radius:       10px;
+}
+
+body, input, select, textarea, button {
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+body { background: var(--tml-bg); color: var(--tml-navy); }
+
+/* ── Header ───────────────────────────────────────────────────────────── */
+header {
+  background: var(--tml-navy); color: #fff;
+  padding: 14px 24px; height: auto;
+  border-bottom: 3px solid var(--tml-red);
+  box-shadow: none; gap: 10px; flex-wrap: wrap;
+}
+header h1 {
+  display: block;   /* el original es flex y se comía el espacio de "MUDANZAS TML" */
+  font-size: 18px; font-weight: 800; letter-spacing: 0;
+}
+/* "MUDANZAS TML" con TML en rojo, igual que los demás módulos. */
+header h1 .tml-marca { color: var(--tml-red); }
+header h1 .tml-modulo {
+  color: var(--tml-muted-3); font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; margin-left: 10px;
+}
+.btn-logout {
+  background: transparent; border: 1px solid #333; color: var(--tml-muted-3);
+  border-radius: 5px; padding: 6px 12px; font-size: 12px; font-weight: 600;
+  min-height: 0;
+}
+.btn-logout:hover { color: #fff; border-color: #555; }
+
+/* Barra de módulos: píldoras, activa en rojo. */
+.tml-modulos { background: var(--tml-navy); border-bottom: 1px solid #2a2a44; }
+.tml-modulos a {
+  color: var(--tml-muted-3); font-size: 12px; padding: 6px 12px;
+  border: 1px solid #333; border-radius: 5px; text-decoration: none;
+}
+.tml-modulos a:hover { color: #fff; border-color: #555; }
+.tml-modulos a.activo { background: var(--tml-red); border-color: var(--tml-red); color: #fff; }
+
+/* ── Entrada (login) ──────────────────────────────────────────────────── */
+/* Mismo overlay navy a pantalla completa que usan los otros módulos. */
+#pantalla-login, #pantalla-cargando {
+  position: fixed; inset: 0; z-index: 999;
+  background: var(--tml-navy); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0; max-width: none; padding: 16px;
+}
+#pantalla-login.oculto, #pantalla-cargando.oculto { display: none; }
+#pantalla-login .card {
+  background: var(--tml-card); border-radius: 14px; width: 360px; max-width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,.4);
+}
+#pantalla-login .card-body { padding: 36px; }
+#pantalla-login h2 {
+  font-size: 20px; font-weight: 800; color: var(--tml-navy);
+  text-align: center; margin-bottom: 2px;
+}
+#pantalla-login h2 .tml-marca { color: var(--tml-red); }
+#pantalla-login .tml-sub {
+  text-align: center; font-size: 12px; color: var(--tml-muted-2);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 22px;
+}
+#pantalla-login label {
+  font-size: 11px; font-weight: 700; color: var(--tml-muted);
+  text-transform: uppercase; letter-spacing: .5px;
+}
+#pantalla-login .btn-primary { border-radius: 8px; padding: 11px; font-size: 14px; }
+#pantalla-login a { color: var(--tml-muted-3); text-decoration: none; }
+#pantalla-login a:hover { text-decoration: underline; }
+#pantalla-cargando { color: var(--tml-muted-3); flex-direction: column; }
+#pantalla-cargando .spinner { border-color: #333; border-top-color: var(--tml-red); }
+
+/* ── Formularios ──────────────────────────────────────────────────────── */
+label {
+  font-size: 11px; font-weight: 700; color: var(--tml-muted);
+  text-transform: uppercase; letter-spacing: .5px;
+}
+input, select, textarea {
+  background: var(--tml-input-bg); border: 1.5px solid var(--tml-border);
+  border-radius: 6px; font-size: 13px; color: var(--tml-navy);
+}
+input:focus, select:focus, textarea:focus { border-color: var(--tml-red); background: #fff; }
+input[type=checkbox] { accent-color: var(--tml-red); }
+input[type=radio] { accent-color: var(--tml-red); }
+
+/* ── Tarjetas ─────────────────────────────────────────────────────────── */
+.card { border-radius: 10px; box-shadow: var(--shadow); }
+.card-header {
+  background: var(--tml-navy); color: #fff;
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+
+/* ── Botones ──────────────────────────────────────────────────────────── */
+.btn {
+  border-radius: 6px; font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px; padding: 8px 18px;
+}
+.btn-primary, .btn-accent { background: var(--tml-red); color: #fff; }
+.btn-primary:hover, .btn-primary:active,
+.btn-accent:hover, .btn-accent:active { background: var(--tml-red-dark); }
+.btn-success { background: var(--tml-green); color: #fff; }
+.btn-outline { background: #fff; color: var(--tml-navy); border: 1.5px solid var(--tml-navy); }
+.btn-lg { font-size: 13px; padding: 11px 20px; }
+
+/* ── Pasos (①②③④) ────────────────────────────────────────────────────── */
+.step { color: var(--tml-muted-3); text-transform: uppercase; letter-spacing: .5px; font-size: .7rem; }
+.step.active { color: var(--tml-red); border-color: var(--tml-red); }
+.step.done { color: var(--tml-green); border-color: var(--tml-green); }
+.punto.activo { background: var(--tml-red); }
+.punto.hecho { background: var(--tml-green); }
+
+/* ── Tablas ───────────────────────────────────────────────────────────── */
+table { font-size: 13px; }
+#pantalla-leads th, .desglose thead th {
+  background: var(--tml-navy); color: #fff; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .7px; padding: 8px 10px;
+}
+#pantalla-leads td { padding: 7px 10px; }
+.tabla-scroll, .tbl-wrap { overflow-x: auto; }
+
+/* ── Cotización y acentos ─────────────────────────────────────────────── */
+.cot-header { background: var(--tml-navy); border-radius: 8px; }
+.cot-header .cot-total { color: var(--tml-gold); }
+.cot-zona { background: rgba(255,255,255,.14); }
+.desglose .total-row td { color: var(--tml-red); }
+.caseta-tarifa { color: var(--tml-red); }
+.unidad-card.selected { border-color: var(--tml-red); background: #fdeaec; }
+.unidad-card:hover { border-color: var(--tml-red); }
+.unidad-card .titulo { color: var(--tml-navy); }
+.tabs-inv button.on { border-color: var(--tml-red); color: var(--tml-red); background: #fdeaec; }
+.ruta-badge .val { color: var(--tml-red); }
+.inv-total, .sel-total { background: #fdeaec; border-color: #f5c2c7; color: var(--tml-red); }
+.drop-zone { border: 1.6px dashed #c0c4cc; background: var(--tml-input-bg); border-radius: 8px; }
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--tml-red); background: #fdeaec; }
+.drop-zone strong { color: var(--tml-red); }
+
+/* ── Avisos ───────────────────────────────────────────────────────────── */
+.alert { border-radius: 6px; font-size: 12px; }
+.alert-info { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.alert-warn { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+.alert-success { background: #d1e7dd; color: var(--tml-green); border: 1px solid #a3cfbb; }
+#error-login { background: transparent; border: none; color: var(--tml-red); font-size: 12px; padding: 8px 0 0; }
+
+/* ── Modal ────────────────────────────────────────────────────────────── */
+.modal-header {
+  background: var(--tml-navy); color: #fff;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+}
+.modal-header h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.spinner { border-top-color: var(--tml-red); }
+
+/* ── Portal de clientes ───────────────────────────────────────────────── */
+body.tml-portal header {
+  display: block; text-align: center; padding: 22px 16px;
+}
+body.tml-portal header h1 { font-size: 20px; justify-content: center; }
+body.tml-portal header p { font-size: 12px; color: var(--tml-muted-3); margin-top: 6px; }
+body.tml-portal .resultado .total { color: var(--tml-red); }
+body.tml-portal .card { border-radius: 10px; box-shadow: var(--shadow); }
+
+@media (max-width: 600px) {
+  header { padding: 12px 14px; }
+  header h1 { font-size: 15px; }
+  #pantalla-login .card-body { padding: 26px 20px; }
+  /* En el teléfono el header crece (los botones bajan de línea), así que la
+     barra de módulos pegada a 60px se le encimaba al hacer scroll: aquí se
+     deja quieta y además no come pantalla. */
+  .tml-modulos { position: static; }
+}

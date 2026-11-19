@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Cotiza tu mudanza — Mudanzas TML</title>
-<script src="inventario.js?v=20261118094001"></script>
+<script src="inventario.js?v=20261118201608"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -94,7 +94,7 @@ textarea { min-height: 90px; resize: vertical; }
 .preview-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; }
 
 .alert { padding: 10px 13px; border-radius: 8px; font-size: .82rem; margin-top: 12px; line-height: 1.5; }
-.alert-info { background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe; }
+.alert-info { background: #f0f2f5; color: var(--primary); border: 1px solid #ddddee; }
 .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
 .alert-warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
 
@@ -121,16 +121,17 @@ footer { text-align: center; font-size: .74rem; color: var(--gray-400); padding:
 .inv-ctl b { min-width: 20px; text-align: center; }
 .tabs-inv { display: flex; gap: 6px; margin-bottom: 12px; }
 .tabs-inv button { flex: 1; min-height: 40px; border: 1.5px solid var(--gray-200); background: #fff; border-radius: 8px; font-weight: 600; font-size: .78rem; cursor: pointer; color: var(--gray-600); }
-.tabs-inv button.on { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
-.sel-total { background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 8px; padding: 10px 12px; font-weight: 700; color: var(--primary); margin-top: 10px; text-align: center; }
+.tabs-inv button.on { border-color: var(--primary); color: var(--primary); background: #f0f2f5; }
+.sel-total { background: #f0f2f5; border: 1.5px solid #ddddee; border-radius: 8px; padding: 10px 12px; font-weight: 700; color: var(--primary); margin-top: 10px; text-align: center; }
 </style>
-<script>(function(){var V='20261118094001';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+<!-- Tema del sistema Mudanzas TML (mismo look que los demás módulos). Va al final: manda sobre lo de arriba. -->
+<link rel="stylesheet" href="tml-theme.css?v=20261118201608">
+<script>(function(){var V='20261118201608';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
 </head>
-<body>
+<body class="tml-portal">
 
 <header>
-  <div class="logo">🚛</div>
-  <h1>Mudanzas TML</h1>
+  <h1>MUDANZAS <span class="tml-marca">TML</span></h1>
   <p>Cotiza tu mudanza en unos minutos</p>
 </header>
 
@@ -236,6 +237,9 @@ footer { text-align: center; font-size: .74rem; color: var(--gray-400); padding:
     </div>
   </div>
   <footer id="pie">Mudanzas TML</footer>
+  <div style="text-align:center;padding:0 16px 24px">
+    <a href="index.html?panel=1" style="font-size:.74rem;color:var(--gray-400)">¿Eres de Mudanzas TML? Entra al panel</a>
+  </div>
 </div>
 
 <script>

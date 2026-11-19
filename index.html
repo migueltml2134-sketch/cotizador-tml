@@ -7,7 +7,7 @@
 <title>Cotizador TML</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="inventario.js?v=20261118094001"></script>
+<script src="inventario.js?v=20261118201608"></script>
 <!-- Firebase Auth: mismas cuentas que el sistema de mudanzastml.mx (proyecto tml-liquidaciones) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -124,7 +124,7 @@ textarea { min-height: 80px; resize: vertical; }
   min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .unidad-card:hover { border-color: var(--primary); }
-.unidad-card.selected { border-color: var(--primary); background: #eff6ff; }
+.unidad-card.selected { border-color: var(--primary); background: #f0f2f5; }
 .unidad-card .icon { font-size: 1.9rem; margin-bottom: 5px; }
 .unidad-card .titulo { font-weight: 700; font-size: .95rem; color: var(--primary); }
 .unidad-card .sub { font-size: .73rem; color: var(--gray-600); margin-top: 3px; line-height: 1.4; }
@@ -187,7 +187,7 @@ textarea { min-height: 80px; resize: vertical; }
 .desglose .iva-row td { color: var(--gray-600); font-size: .8rem; }
 
 .alert { padding: 10px 13px; border-radius: 8px; font-size: .83rem; margin-top: 10px; line-height: 1.5; }
-.alert-info { background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe; }
+.alert-info { background: #f0f2f5; color: var(--primary); border: 1px solid #ddddee; }
 .alert-warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
 
 /* ── LOADER ─────────────────────────────────────────────────────────────── */
@@ -228,7 +228,7 @@ textarea { min-height: 80px; resize: vertical; }
   padding: 28px 16px; text-align: center; cursor: pointer;
   transition: .2s; background: var(--gray-50);
 }
-.drop-zone:hover, .drop-zone.drag-over { border-color: var(--primary); background: #eff6ff; }
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--primary); background: #f0f2f5; }
 .drop-zone .drop-icon { font-size: 2.3rem; margin-bottom: 8px; }
 .drop-zone p { color: var(--gray-600); font-size: .88rem; }
 .drop-zone strong { color: var(--primary); }
@@ -328,7 +328,7 @@ textarea { min-height: 80px; resize: vertical; }
 #pantalla-login h2 { font-size: 1.05rem; margin-bottom: 14px; }
 .tabs-inv { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
 .tabs-inv button { flex: 1; min-height: 40px; border: 1.5px solid var(--gray-200); background: #fff; border-radius: 8px; font-weight: 600; font-size: .8rem; cursor: pointer; color: var(--gray-600); }
-.tabs-inv button.on { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+.tabs-inv button.on { border-color: var(--primary); color: var(--primary); background: #f0f2f5; }
 .inv-grupo { border: 1.5px solid var(--gray-200); border-radius: 8px; margin-bottom: 6px; }
 .inv-grupo summary { padding: 10px 12px; font-weight: 700; font-size: .85rem; cursor: pointer; }
 .inv-fila { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; border-top: 1px solid var(--gray-100); font-size: .83rem; gap: 8px; }
@@ -336,7 +336,7 @@ textarea { min-height: 80px; resize: vertical; }
 .inv-ctl { display: flex; align-items: center; gap: 8px; }
 .inv-ctl button { width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid var(--gray-200); background: #fff; font-size: 1.1rem; cursor: pointer; }
 .inv-ctl b { min-width: 20px; text-align: center; }
-.inv-total { position: sticky; bottom: 0; background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 8px; padding: 10px 12px; font-weight: 700; color: var(--primary); margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.inv-total { position: sticky; bottom: 0; background: #f0f2f5; border: 1.5px solid #ddddee; border-radius: 8px; padding: 10px 12px; font-weight: 700; color: var(--primary); margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 #pantalla-leads { display: none; max-width: 1100px; margin: 0 auto; padding: 16px 12px 40px; }
 #pantalla-leads table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
 #pantalla-leads th { background: var(--primary); color: #fff; text-align: left; padding: 10px; font-size: .76rem; }
@@ -356,15 +356,17 @@ textarea { min-height: 80px; resize: vertical; }
 .tml-modulos a:hover { background: rgba(255,255,255,.12); color: #fff; }
 .tml-modulos a.activo { background: rgba(255,255,255,.22); color: #fff; }
 </style>
-<script>(function(){var V='20261118094001';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+<!-- Tema del sistema Mudanzas TML (mismo look que los demás módulos). Va al final: manda sobre lo de arriba. -->
+<link rel="stylesheet" href="tml-theme.css?v=20261118201608">
+<script>(function(){var V='20261118201608';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
 </head>
 <body>
 
 <header>
-  <h1>🚛 Mudanzas TML</h1>
+  <h1>MUDANZAS <span class="tml-marca">TML</span><span class="tml-modulo">Cotizador</span></h1>
   <div class="header-right oculto" id="header-acciones">
-    <span class="header-badge">Panel Admin</span>
-    <a href="#" class="btn-logout" style="background:rgba(255,255,255,.25)" onclick="verLeads();return false" id="btn-leads">📋 Leads</a>
+    <span class="header-badge">Panel</span>
+    <a href="#" class="btn-logout" onclick="verLeads();return false" id="btn-leads">📋 Leads</a>
     <a href="#" class="btn-logout" onclick="cerrarSesion();return false">🔒 Salir</a>
   </div>
 </header>
@@ -393,9 +395,15 @@ textarea { min-height: 80px; resize: vertical; }
 </nav>
 
 <!-- ENTRADA -->
-<div id="pantalla-login">
+<!-- Mientras se comprueba la sesión (token guardado o ?sso=) se ve esto, no la
+     pantalla de entrada: así no parpadea el login cuando ya hay sesión. -->
+<div id="pantalla-cargando" style="max-width:380px;margin:80px auto;padding:0 16px;text-align:center;color:var(--gray-600);font-size:.9rem">
+  <div class="spinner"></div>Entrando…
+</div>
+<div id="pantalla-login" class="oculto">
   <div class="card"><div class="card-body">
-    <h2>🔒 Panel de cotizaciones</h2>
+    <h2>MUDANZAS <span class="tml-marca">TML</span></h2>
+    <div class="tml-sub">Cotizador</div>
     <label for="correo">Correo</label>
     <input type="email" id="correo" autocomplete="username" onkeydown="if(event.key==='Enter')$('clave-fb').focus()">
     <label for="clave-fb" style="margin-top:12px">Contraseña</label>
@@ -437,7 +445,7 @@ textarea { min-height: 80px; resize: vertical; }
 
         <!-- PASO 1: ORIGEN / DESTINO -->
         <div class="section active" id="sec-origen">
-          <div class="ia-banner" style="margin-bottom:16px;padding:12px 16px;background:linear-gradient(135deg,#eff6ff,#dbeafe);border-radius:10px;border:1.5px solid #bfdbfe;display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div class="ia-banner" style="margin-bottom:16px;padding:12px 16px;background:#f0f2f5;border-radius:10px;border:1.5px solid #ddddee;display:flex;align-items:center;justify-content:space-between;gap:12px">
             <div>
               <div style="font-weight:700;font-size:.9rem;color:var(--primary)">📋 Inventario y datos del cliente</div>
               <div style="font-size:.78rem;color:var(--gray-600);margin-top:2px">Escribe solo los m³, elige muebles de la lista, pega el texto del cliente o sube capturas de WhatsApp</div>
@@ -477,7 +485,7 @@ textarea { min-height: 80px; resize: vertical; }
 
         <!-- PASO 2: UNIDAD -->
         <div class="section" id="sec-unidad">
-          <div class="ia-banner" style="margin-bottom:16px;padding:12px 16px;background:linear-gradient(135deg,#eff6ff,#dbeafe);border-radius:10px;border:1.5px solid #bfdbfe;display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div class="ia-banner" style="margin-bottom:16px;padding:12px 16px;background:#f0f2f5;border-radius:10px;border:1.5px solid #ddddee;display:flex;align-items:center;justify-content:space-between;gap:12px">
             <div>
               <div style="font-weight:700;font-size:.9rem;color:var(--primary)">📐 Calcular metraje</div>
               <div style="font-size:.78rem;color:var(--gray-600);margin-top:2px">Escribe los m³ abajo, o marca los muebles / pega la lista para calcularlos</div>
@@ -576,7 +584,7 @@ textarea { min-height: 80px; resize: vertical; }
             <input type="number" id="cf-grande" min="0" value="0">
           </div>
 
-          <div class="extra-block" style="background:#eff6ff;border:1.5px solid #bfdbfe;">
+          <div class="extra-block" style="background:#f0f2f5;border:1.5px solid #ddddee;">
             <div style="font-weight:700;font-size:.85rem;margin-bottom:4px">📦 Embalaje (estimado inicial, se ajusta al finalizar)</div>
             <div class="input-row">
               <div><label style="margin-top:0">Cajas de libros ($200)</label><input type="number" id="cajas-libros" min="0" value="0"></div>
@@ -715,11 +723,16 @@ function escHtml(str) { return String(str == null ? '' : str).replace(/&/g,'&amp
 // ── Entrada ───────────────────────────────────────────────────────────────
 let EMPRESA_TEL = '';
 function mostrarLogin(msg) {
+  $('pantalla-cargando').classList.add('oculto');
   $('pantalla-login').classList.remove('oculto'); $('pantalla-cotizador').classList.add('oculto');
   $('pantalla-leads').style.display = 'none'; $('header-acciones').classList.add('oculto'); $('tml-modulos').classList.add('oculto');
   if (msg) { $('error-login').textContent = msg; $('error-login').classList.remove('oculto'); }
 }
 function mostrarPanel(res) {
+  // Marca este navegador como "de personal": si la sesión vence, al volver se
+  // muestra la entrada del panel en vez de mandarlo al portal de clientes.
+  try { localStorage.setItem('tml_cot_personal', '1'); } catch (e) {}
+  $('pantalla-cargando').classList.add('oculto');
   $('pantalla-login').classList.add('oculto'); $('pantalla-cotizador').classList.remove('oculto'); $('header-acciones').classList.remove('oculto'); $('tml-modulos').classList.remove('oculto');
   if (res) { EMPRESA_TEL = res.telefono || ''; $('btn-leads').textContent = '📋 Leads' + (res.leadsHoy ? ' · ' + res.leadsHoy + ' hoy' : ''); }
   if (!mapa) initMapa(); else setTimeout(() => mapa.invalidateSize(), 50);
@@ -786,9 +799,13 @@ async function olvideClave() {
 }
 function cerrarSesion() {
   try { if (typeof firebase !== 'undefined' && firebase.apps.length) firebase.auth().signOut().catch(() => {}); } catch (e) {}
-  api('salir', TOKEN).catch(() => {}); TOKEN = '';
+  const salida = api('salir', TOKEN).catch(() => {});
+  TOKEN = '';
   try { localStorage.removeItem('tml_cot_token'); } catch (e) {}
-  mostrarLogin();
+  // Se recarga con ?panel=1 para que quede la pantalla de entrada del personal
+  // (sin eso, al recargar sin sesión la página mandaría al portal de clientes).
+  const alLogin = () => location.replace(location.pathname + '?panel=1');
+  salida.then(alLogin, alLogin);
 }
 
 // ── Sesión compartida (SSO) al entrar desde el menú de otro módulo de TML ──
@@ -817,18 +834,29 @@ async function entrarConSSO(code) {
   }
 }
 (function () {
-  var ssoCode = new URLSearchParams(location.search).get('sso');
+  var par = new URLSearchParams(location.search), ssoCode = par.get('sso');
+  // El personal de TML llega con ?sso= (menú de módulos) o con su sesión guardada.
+  // Quien no trae ninguna de las dos es un cliente: va al portal público, salvo
+  // que pida la entrada del personal a propósito (?panel=1, o el link del portal).
+  var pidePanel = par.has('panel') || location.hash === '#panel';
+  try { pidePanel = pidePanel || localStorage.getItem('tml_cot_personal') === '1'; } catch (e) {}
+  function sinSesion(msg) {
+    if (pidePanel || msg) mostrarLogin(msg);
+    else location.replace('cotiza.html');
+  }
   if (ssoCode) {
     // Se quita de la URL de inmediato — un código es de un solo uso, y no
     // queremos que quede visible ni se reintente si recargan la página.
-    history.replaceState(null, '', location.pathname);
+    history.replaceState(null, '', location.pathname + (pidePanel ? '?panel=1' : ''));
     entrarConSSO(ssoCode).then(function (ok) {
-      if (!ok) { if (TOKEN) adm('resumen').then(mostrarPanel, () => mostrarLogin()); else mostrarLogin(); }
+      if (ok) return;
+      if (TOKEN) adm('resumen').then(mostrarPanel, () => sinSesion('No se pudo entrar con la sesión compartida. Escribe tu correo y contraseña.'));
+      else sinSesion('No se pudo entrar con la sesión compartida. Escribe tu correo y contraseña.');
     });
   } else if (TOKEN) {
-    adm('resumen').then(mostrarPanel, () => mostrarLogin());
+    adm('resumen').then(mostrarPanel, () => sinSesion());
   } else {
-    mostrarLogin();
+    sinSesion();
   }
 })();
 
@@ -1103,7 +1131,7 @@ function mostrarCotizacion(d0, mismoFolio) {
       ${d.ret_iva ? `<tr class="iva-row"><td>Retención IVA 4%</td><td>−${fmx(d.ret_iva)}</td></tr>` : ''}
       <tr class="total-row"><td>TOTAL${S.modoIva === 'sin' ? ' (sin IVA)' : ''}</td><td>${fmx(d.total)}</td></tr>
     </table>
-    <div class="no-print" style="margin-top:12px;padding:12px 14px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px">
+    <div class="no-print" style="margin-top:12px;padding:12px 14px;background:#f0f2f5;border:1.5px solid #ddddee;border-radius:10px">
       <div style="font-weight:700;font-size:.85rem;margin-bottom:8px;color:var(--primary)">🧾 ¿Cómo se factura?</div>
       ${Object.keys(MODOS_IVA).map(k => `<label style="display:flex;align-items:center;gap:8px;margin:6px 0;font-weight:600;color:var(--gray-800);cursor:pointer">
         <input type="radio" name="modo-iva" value="${k}" ${k === S.modoIva ? 'checked' : ''} onchange="cambiarModoIva(this.value)" style="-webkit-appearance:auto;appearance:auto;width:20px;height:20px;min-height:auto;flex-shrink:0">${MODOS_IVA[k].et}</label>`).join('')}
@@ -1303,7 +1331,7 @@ function mostrarResultadoIA(d) {
   let html = `<div style="margin-bottom:12px;padding:8px 12px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;font-size:.78rem;color:#92400e">
     ℹ️ Resultado por reglas (sin IA): revisa nombre, direcciones y m³ antes de aplicar.</div>`;
   if (d.transcripcion) html += `<div style="margin-bottom:14px"><div style="font-size:.82rem;font-weight:700;margin-bottom:5px">💬 Texto leído:</div>
-    <div style="font-size:.78rem;padding:10px;background:#f8faff;border:1.5px solid #bfdbfe;border-radius:8px;white-space:pre-wrap;max-height:160px;overflow-y:auto;line-height:1.6">${escHtml(d.transcripcion)}</div></div>`;
+    <div style="font-size:.78rem;padding:10px;background:#f8faff;border:1.5px solid #ddddee;border-radius:8px;white-space:pre-wrap;max-height:160px;overflow-y:auto;line-height:1.6">${escHtml(d.transcripcion)}</div></div>`;
   const campo = (id, et, val, ph) => `<label style="font-size:.78rem;color:var(--gray-600);font-weight:600;margin:8px 0 3px;display:block">${et} ${val ? '<span style="color:var(--success);font-size:.72rem">(detectado — verifica)</span>' : '<span style="color:var(--gray-400);font-size:.72rem">(no detectado — escribe tú)</span>'}</label>
     <input id="${id}" type="text" value="${escHtml(val || '')}" placeholder="${ph}" style="width:100%;padding:9px 12px;border:1.5px solid ${val ? 'var(--success)' : 'var(--gray-200)'};border-radius:8px;font-size:.85rem;background:#fff;min-height:40px">`;
   html += campo('ia-nombre-input', '👤 Nombre del cliente', d.cliente_nombre, 'Nombre completo del cliente');
