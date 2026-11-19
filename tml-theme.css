@@ -48,14 +48,15 @@ body { background: var(--tml-bg); color: var(--tml-navy); }
 /* ── Header ───────────────────────────────────────────────────────────── */
 header {
   background: var(--tml-navy); color: #fff;
-  padding: 14px 24px; height: auto;
+  padding: 0 20px; height: 58px; box-sizing: border-box;
   border-bottom: 3px solid var(--tml-red);
-  box-shadow: none; gap: 10px; flex-wrap: wrap;
+  box-shadow: none; gap: 10px; flex-wrap: nowrap;
 }
 header h1 {
-  display: block;   /* el original es flex y se comía el espacio de "MUDANZAS TML" */
+  display: flex; align-items: center; gap: 0; min-width: 0;
   font-size: 18px; font-weight: 800; letter-spacing: 0;
 }
+header .tml-logo { height: 36px; width: auto; display: block; }
 /* "MUDANZAS TML" con TML en rojo, igual que los demás módulos. */
 header h1 .tml-marca { color: var(--tml-red); }
 header h1 .tml-modulo {
@@ -69,8 +70,15 @@ header h1 .tml-modulo {
 }
 .btn-logout:hover { color: #fff; border-color: #555; }
 
-/* Barra de módulos: píldoras, activa en rojo. */
-.tml-modulos { background: var(--tml-navy); border-bottom: 1px solid #2a2a44; }
+/* Barra de módulos: un solo renglón que se arrastra de lado, como el panel principal. */
+.tml-modulos {
+  background: var(--tml-navy); border-bottom: 1px solid #2a2a44;
+  flex-wrap: nowrap; overflow-x: auto; white-space: nowrap;
+  top: 58px; gap: 6px;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.tml-modulos::-webkit-scrollbar { display: none; }
+.tml-modulos a { flex: 0 0 auto; }
 .tml-modulos a {
   color: var(--tml-muted-3); font-size: 12px; padding: 6px 12px;
   border: 1px solid #333; border-radius: 5px; text-decoration: none;
@@ -109,7 +117,10 @@ header h1 .tml-modulo {
 #pantalla-login a { color: var(--tml-muted-3); text-decoration: none; }
 #pantalla-login a:hover { text-decoration: underline; }
 #pantalla-cargando { color: var(--tml-muted-3); flex-direction: column; }
-#pantalla-cargando .spinner { border-color: #333; border-top-color: var(--tml-red); }
+#pantalla-cargando .spinner {
+  width: 42px; height: 42px; border: 4px solid #2a2a44;
+  border-top-color: var(--tml-red); margin-bottom: 14px;
+}
 
 /* ── Formularios ──────────────────────────────────────────────────────── */
 label {
@@ -130,6 +141,40 @@ input[type=radio] { accent-color: var(--tml-red); }
   background: var(--tml-navy); color: #fff;
   font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
 }
+
+/* ── Paso 3 (Detalles): tarjetas blancas, sin fondos pastel ───────────── */
+.extra-block {
+  background: var(--tml-card); border: 0.8px solid var(--tml-border);
+  border-left: 3px solid var(--tml-red); border-radius: 10px;
+  padding: 16px 20px; margin-top: 12px;
+}
+.extra-block .extra-titulo {
+  display: block; font-size: 12px; font-weight: 700; color: var(--tml-navy);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
+}
+.extra-block label .extra-titulo { display: inline; margin-bottom: 0; }
+.extra-block .extra-nota { font-size: 11px; color: var(--tml-muted-2); margin-bottom: 10px; }
+.extra-block label { color: var(--tml-muted); }
+
+/* ── 4 · Barra de m³ ──────────────────────────────────────────────────── */
+input[type=range] {
+  -webkit-appearance: none; appearance: none; accent-color: var(--tml-red);
+  flex: 1; min-width: 120px; height: 18px; background: transparent; cursor: pointer;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px; background: var(--tml-border);
+}
+input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--tml-border); }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; margin-top: -6px;
+  width: 16px; height: 16px; border-radius: 50%; background: var(--tml-red); border: none;
+}
+input[type=range]::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%; background: var(--tml-red); border: none;
+}
+
+/* ── 10 · Lupa / palomita de las direcciones ──────────────────────────── */
+.addr-ok { color: var(--tml-green); font-weight: 700; font-size: 1.05rem; }
 
 /* ── Botones ──────────────────────────────────────────────────────────── */
 .btn {
@@ -199,12 +244,32 @@ body.tml-portal header p { font-size: 12px; color: var(--tml-muted-3); margin-to
 body.tml-portal .resultado .total { color: var(--tml-red); }
 body.tml-portal .card { border-radius: 10px; box-shadow: var(--shadow); }
 
+/* ── 11 · Teléfono y tablet ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* El cuadro de casetas va debajo del formulario (una sola columna). */
+  .container { grid-template-columns: 1fr; }
+  .card-sticky { position: static !important; }
+  /* Pasos ①-④ compactos. */
+  .step { font-size: .62rem; padding: 7px 1px 6px; letter-spacing: 0; }
+  .step .step-num { font-size: .8rem; }
+  /* Atrás / Siguiente siempre a la vista. */
+  .btn-row-nav {
+    position: sticky; bottom: 0; z-index: 50;
+    background: var(--tml-card); padding: 10px 0 8px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,.08);
+  }
+  .tabla-scroll, .tbl-wrap, .desglose-wrap { overflow-x: auto; }
+}
 @media (max-width: 600px) {
-  header { padding: 12px 14px; }
+  header { padding: 0 14px; }
   header h1 { font-size: 15px; }
+  header .tml-logo { height: 28px; }
+  /* En pantallas chicas la etiqueta estorba a los botones: se oculta. */
+  header h1 .tml-modulo { display: none; }
+  .header-right { gap: 6px; }
   #pantalla-login .card-body { padding: 26px 20px; }
   /* En el teléfono el header crece (los botones bajan de línea), así que la
      barra de módulos pegada a 60px se le encimaba al hacer scroll: aquí se
      deja quieta y además no come pantalla. */
-  .tml-modulos { position: static; }
+  .tml-modulos { position: static; padding: 6px 10px; }
 }

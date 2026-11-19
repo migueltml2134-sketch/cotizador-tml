@@ -7,7 +7,7 @@
 <title>Cotizador TML</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="inventario.js?v=20261118202734"></script>
+<script src="inventario.js?v=20261118203824"></script>
 <!-- Firebase Auth: mismas cuentas que el sistema de mudanzastml.mx (proyecto tml-liquidaciones) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -357,13 +357,13 @@ textarea { min-height: 80px; resize: vertical; }
 .tml-modulos a.activo { background: rgba(255,255,255,.22); color: #fff; }
 </style>
 <!-- Tema del sistema Mudanzas TML (mismo look que los demás módulos). Va al final: manda sobre lo de arriba. -->
-<link rel="stylesheet" href="tml-theme.css?v=20261118202734">
-<script>(function(){var V='20261118202734';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+<link rel="stylesheet" href="tml-theme.css?v=20261118203824">
+<script>(function(){var V='20261118203824';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
 </head>
 <body>
 
 <header>
-  <h1>MUDANZAS <span class="tml-marca">TML</span><span class="tml-modulo">Cotizador</span></h1>
+  <h1><img src="https://mudanzastml.mx/LOGO.png" alt="Mudanzas TML" class="tml-logo"><span class="tml-modulo">Cotizador</span></h1>
   <div class="header-right oculto" id="header-acciones">
     <span class="header-badge">Panel</span>
     <a href="#" class="btn-logout" onclick="verLeads();return false" id="btn-leads">📋 Leads</a>
@@ -456,15 +456,15 @@ textarea { min-height: 80px; resize: vertical; }
           <label>Dirección de origen</label>
           <div class="addr-wrap">
             <input type="text" id="origen" placeholder="Ej: Av. Insurgentes 1234, CDMX" oninput="resetAddr('origen')">
-            <button class="addr-btn" onclick="calcularRuta()" title="Buscar dirección">🔍</button>
-            <span class="addr-ok" id="origen-ok">✅</span>
+            <button class="addr-btn" id="origen-btn" onclick="geocodificar('origen', true)" title="Buscar dirección">🔍</button>
+            <span class="addr-ok" id="origen-ok">✔</span>
           </div>
 
           <label>Dirección de destino</label>
           <div class="addr-wrap">
             <input type="text" id="destino" placeholder="Ej: Calle Juárez 50, Guadalajara" oninput="resetAddr('destino')">
-            <button class="addr-btn" onclick="calcularRuta()" title="Buscar dirección">🔍</button>
-            <span class="addr-ok" id="destino-ok">✅</span>
+            <button class="addr-btn" id="destino-btn" onclick="geocodificar('destino', true)" title="Buscar dirección">🔍</button>
+            <span class="addr-ok" id="destino-ok">✔</span>
           </div>
 
           <label>Ruta en mapa</label>
@@ -509,7 +509,7 @@ textarea { min-height: 80px; resize: vertical; }
           <div style="display:flex;gap:10px;align-items:center">
             <input type="number" id="vol-num" min="1" max="300" step="0.5" value="20" oninput="actualizarVol(this.value, true)" style="max-width:140px;font-size:1.2rem;font-weight:700;color:var(--primary);text-align:center">
             <span style="font-weight:700;color:var(--primary)">m³</span>
-            <input type="range" id="vol-slider" min="5" max="85" value="20" oninput="actualizarVol(this.value)" style="padding:0;background:none;border:none;flex:1">
+            <input type="range" id="vol-slider" min="5" max="85" value="20" oninput="actualizarVol(this.value)">
           </div>
           <div style="display:none" id="vol-display">20 m³</div>
           <div class="alert alert-info" id="vol-sugerencia">Sugerencia: unidad de 35 m³</div>
@@ -523,83 +523,83 @@ textarea { min-height: 80px; resize: vertical; }
 
         <!-- PASO 3: DETALLES -->
         <div class="section" id="sec-extras">
-          <div class="extra-block" style="background:#f5f3ff;border:1.5px solid #c4b5fd;">
+          <div class="extra-block">
             <label style="margin-top:0;display:flex;align-items:center;gap:8px;cursor:pointer">
               <input type="checkbox" id="recoleccion-adicional" onchange="toggleRecoleccion()">
-              <span style="font-weight:700;font-size:.85rem">🚚 ¿Recolección en un punto adicional?</span>
+              <span class="extra-titulo">🚚 ¿Recolección en un punto adicional?</span>
             </label>
-            <div style="font-size:.76rem;color:#5b21b6;margin-top:4px">Se cobra una maniobra de carga extra: $1,500 camioneta · $2,500 camión</div>
+            <div class="extra-nota" style="margin-top:4px">Se cobra una maniobra de carga extra: $1,500 camioneta · $2,500 camión</div>
             <div id="wrap-recoleccion" style="display:none;margin-top:8px">
               <label style="margin-top:0" for="recoleccion-monto">Monto de la recolección ($) — cámbialo si es otro</label>
               <input type="number" id="recoleccion-monto" min="0" step="100">
             </div>
           </div>
 
-          <div class="extra-block" style="background:#fffbeb;border:1.5px solid #fde68a;">
-            <div style="font-weight:700;font-size:.85rem;margin-bottom:4px">🪜 Pisos de escalera (sin elevador)</div>
-            <div style="font-size:.76rem;color:#92400e;margin-bottom:10px">$200 por piso (carga + descarga)</div>
+          <div class="extra-block">
+            <div class="extra-titulo">🪜 Pisos de escalera (sin elevador)</div>
+            <div class="extra-nota" style="margin-bottom:10px">$200 por piso (carga + descarga)</div>
             <div class="input-row">
-              <div><label style="margin-top:0">Pisos en carga</label><input type="number" id="piso-carga" min="0" value="0"></div>
-              <div><label style="margin-top:0">Pisos en descarga</label><input type="number" id="piso-descarga" min="0" value="0"></div>
+              <div><label style="margin-top:0">Pisos en carga</label><input type="number" id="piso-carga" min="0" placeholder="0"></div>
+              <div><label style="margin-top:0">Pisos en descarga</label><input type="number" id="piso-descarga" min="0" placeholder="0"></div>
             </div>
           </div>
 
-          <div class="extra-block" style="background:#fef3c7;border:1.5px solid #fbbf24;">
-            <div style="font-weight:700;font-size:.85rem;margin-bottom:4px">🏗️ Vuelo de muebles (por ventana)</div>
-            <div style="font-size:.76rem;color:#78350f;margin-bottom:10px">$700 por pieza, por cada 2 pisos volados</div>
+          <div class="extra-block">
+            <div class="extra-titulo">🏗️ Vuelo de muebles (por ventana)</div>
+            <div class="extra-nota" style="margin-bottom:10px">$700 por pieza, por cada 2 pisos volados</div>
             <div class="input-row">
-              <div><label style="margin-top:0">Piezas a volar</label><input type="number" id="vuelo-piezas" min="0" value="0"></div>
-              <div><label style="margin-top:0">Pisos que se vuelan</label><input type="number" id="vuelo-pisos" min="0" value="0"></div>
+              <div><label style="margin-top:0">Piezas a volar</label><input type="number" id="vuelo-piezas" min="0" placeholder="0"></div>
+              <div><label style="margin-top:0">Pisos que se vuelan</label><input type="number" id="vuelo-pisos" min="0" placeholder="0"></div>
             </div>
           </div>
 
-          <div class="extra-block" style="background:#f0fdf4;border:1.5px solid #86efac;">
-            <div style="font-weight:700;font-size:.85rem;margin-bottom:4px">🚶 Acarreos</div>
-            <div style="font-size:.76rem;color:#166534;margin-bottom:10px">Primeros 20 m gratis, luego $1,000 por cada 50 m (o fracción)</div>
+          <div class="extra-block">
+            <div class="extra-titulo">🚶 Acarreos</div>
+            <div class="extra-nota" style="margin-bottom:10px">Primeros 20 m gratis, luego $1,000 por cada 50 m (o fracción)</div>
             <label style="margin-top:0">Distancia entre camión y puerta (m)</label>
-            <input type="number" id="acarreo-metros" min="0" value="0">
-            <div style="font-size:.76rem;color:#166534;margin:10px 0">Si se necesita camioneta para hacer viajes (27 m³ c/u, $3,000 por viaje):</div>
+            <input type="number" id="acarreo-metros" min="0" placeholder="0">
+            <div class="extra-nota" style="margin:10px 0">Si se necesita camioneta para hacer viajes (27 m³ c/u, $3,000 por viaje):</div>
             <label style="margin-top:0">m³ a mover en camioneta</label>
-            <input type="number" id="acarreo-camioneta-m3" min="0" value="0">
+            <input type="number" id="acarreo-camioneta-m3" min="0" placeholder="0">
             <label for="acarreo-camioneta-monto">o escribe el monto del acarreo en camioneta ($) — si lo pones, se usa este</label>
             <input type="number" id="acarreo-camioneta-monto" min="0" step="100" placeholder="Vacío = se calcula por m³">
           </div>
 
-          <div class="extra-block" style="background:#fdf2f8;border:1.5px solid #f9a8d4;">
-            <div style="font-weight:700;font-size:.85rem;margin-bottom:4px">🎹 Maniobras especiales</div>
+          <div class="extra-block">
+            <div class="extra-titulo">🎹 Maniobras especiales</div>
             <div class="input-row">
-              <div><label style="margin-top:0">Piano vertical ($3,000)</label><input type="number" id="piano-vertical" min="0" value="0"></div>
-              <div><label style="margin-top:0">Piano media cola ($5,800)</label><input type="number" id="piano-media-cola" min="0" value="0"></div>
+              <div><label style="margin-top:0">Piano vertical ($3,000)</label><input type="number" id="piano-vertical" min="0" placeholder="0"></div>
+              <div><label style="margin-top:0">Piano media cola ($5,800)</label><input type="number" id="piano-media-cola" min="0" placeholder="0"></div>
             </div>
             <div class="input-row" style="margin-top:10px">
-              <div><label style="margin-top:0">Piano de cola ($7,800)</label><input type="number" id="piano-cola" min="0" value="0"></div>
-              <div><label style="margin-top:0">Cubierta cantera/mármol/ónix ($4,800)</label><input type="number" id="cubiertas-especiales" min="0" value="0"></div>
+              <div><label style="margin-top:0">Piano de cola ($7,800)</label><input type="number" id="piano-cola" min="0" placeholder="0"></div>
+              <div><label style="margin-top:0">Cubierta cantera/mármol/ónix ($4,800)</label><input type="number" id="cubiertas-especiales" min="0" placeholder="0"></div>
             </div>
-            <div style="font-size:.76rem;color:#9d174d;margin:10px 0 4px">Cajas fuertes:</div>
+            <div class="extra-nota" style="margin:10px 0 4px">Cajas fuertes:</div>
             <div class="input-row">
-              <div><label style="margin-top:0">Chica ($3,000)</label><input type="number" id="cf-chica" min="0" value="0"></div>
-              <div><label style="margin-top:0">Mediana ($5,800)</label><input type="number" id="cf-mediana" min="0" value="0"></div>
+              <div><label style="margin-top:0">Chica ($3,000)</label><input type="number" id="cf-chica" min="0" placeholder="0"></div>
+              <div><label style="margin-top:0">Mediana ($5,800)</label><input type="number" id="cf-mediana" min="0" placeholder="0"></div>
             </div>
             <label style="margin-top:10px">Grande ($7,800)</label>
-            <input type="number" id="cf-grande" min="0" value="0">
+            <input type="number" id="cf-grande" min="0" placeholder="0">
           </div>
 
-          <div class="extra-block" style="background:#f0f2f5;border:1.5px solid #ddddee;">
-            <div style="font-weight:700;font-size:.85rem;margin-bottom:4px">📦 Embalaje (estimado inicial, se ajusta al finalizar)</div>
+          <div class="extra-block">
+            <div class="extra-titulo">📦 Embalaje (estimado inicial, se ajusta al finalizar)</div>
             <div class="input-row">
-              <div><label style="margin-top:0">Cajas de libros ($200)</label><input type="number" id="cajas-libros" min="0" value="0"></div>
-              <div><label style="margin-top:0">Cajas de varios ($300)</label><input type="number" id="cajas-varios" min="0" value="0"></div>
+              <div><label style="margin-top:0">Cajas de libros ($200)</label><input type="number" id="cajas-libros" min="0" placeholder="0"></div>
+              <div><label style="margin-top:0">Cajas de varios ($300)</label><input type="number" id="cajas-varios" min="0" placeholder="0"></div>
             </div>
             <div class="input-row" style="margin-top:10px">
-              <div><label style="margin-top:0">Cajas ropero ($750)</label><input type="number" id="cajas-ropero" min="0" value="0"></div>
-              <div><label style="margin-top:0">Roperos acostados ($480)</label><input type="number" id="roperos-acostados" min="0" value="0"></div>
+              <div><label style="margin-top:0">Cajas ropero ($750)</label><input type="number" id="cajas-ropero" min="0" placeholder="0"></div>
+              <div><label style="margin-top:0">Roperos acostados ($480)</label><input type="number" id="roperos-acostados" min="0" placeholder="0"></div>
             </div>
             <label style="margin-top:10px">Cajas barrica ($360)</label>
-            <input type="number" id="cajas-barrica" min="0" value="0">
+            <input type="number" id="cajas-barrica" min="0" placeholder="0">
           </div>
 
           <label>Fecha estimada de carga</label>
-          <input type="text" id="fecha-carga" placeholder="Ej: 15 de Julio del 2026">
+          <input type="date" id="fecha-carga">
           <label>Notas adicionales del cliente</label>
           <textarea id="notas" rows="3" placeholder="Objetos especiales, horario, accesos difíciles..."></textarea>
           <label>Nombre del cliente</label>
@@ -611,7 +611,7 @@ textarea { min-height: 80px; resize: vertical; }
 
           <div class="btn-row btn-row-nav">
             <button class="btn btn-outline" onclick="irPaso(2)">← Atrás</button>
-            <button class="btn btn-accent" id="btn-generar" onclick="generarCotizacion()" style="flex:1">🧮 Generar cotización</button>
+            <button class="btn btn-primary" id="btn-generar" onclick="generarCotizacion()" style="flex:1">🧮 Generar cotización</button>
           </div>
         </div>
 
@@ -904,6 +904,12 @@ function ajustarMapa() {
 
 // ── Geocodificación ───────────────────────────────────────────────────────
 /** Busca una dirección. Devuelve true si la encontró. Con soloBuscar no lanza el cálculo de ruta. */
+/** Validada: se cambia la lupa por la palomita verde (nunca las dos juntas). */
+function marcarDireccion(tipo, ok) {
+  const b = $(tipo + '-btn'), v = $(tipo + '-ok');
+  if (b) b.style.display = ok ? 'none' : 'flex';
+  if (v) v.style.display = ok ? 'block' : 'none';
+}
 async function geocodificar(tipo, soloBuscar) {
   const inp = $(tipo), val = inp.value.trim();
   if (!val) return false;
@@ -916,8 +922,8 @@ async function geocodificar(tipo, soloBuscar) {
     return false;
   }
   inp.disabled = false;
-  if (tipo === 'origen') { S.olat = d.lat; S.olon = d.lon; $('origen-ok').style.display = 'block'; }
-  else { S.dlat = d.lat; S.dlon = d.lon; $('destino-ok').style.display = 'block'; }
+  if (tipo === 'origen') { S.olat = d.lat; S.olon = d.lon; } else { S.dlat = d.lat; S.dlon = d.lon; }
+  marcarDireccion(tipo, true);
   inp.title = d.display;
   if (S.olat && S.dlat) {
     actualizarMapa([[S.olat, S.olon], [S.dlat, S.dlon]], true);
@@ -926,8 +932,9 @@ async function geocodificar(tipo, soloBuscar) {
   return true;
 }
 function resetAddr(tipo) {
-  if (tipo === 'origen') { S.olat = null; $('origen-ok').style.display = 'none'; }
-  else { S.dlat = null; $('destino-ok').style.display = 'none'; }
+  if (tipo === 'origen') { S.olat = null; } else { S.dlat = null; }
+  marcarDireccion(tipo, false);
+  $('error-ruta').style.display = 'none';   // al corregir, el aviso se va solo
   S.dist_km = 0;
   $('btn-calcular-ruta').disabled = !($('origen').value.trim() && $('destino').value.trim());
 }
@@ -1021,14 +1028,14 @@ function mostrarCasetasPanel() {
   S.casetas.forEach(c => {
     const aviso = c.incierto ? ` <span title="Esta caseta tiene más de una tarifa posible en la misma zona — confirma el precio a mano antes de cotizar" style="cursor:help">⚠️</span>` : '';
     html += `<div class="caseta-row"><div><div class="caseta-nombre">${escHtml(c.nombre)}${aviso}</div><div class="caseta-estado">${escHtml(String(c.carretera).substring(0,30))} · ${escHtml(c.estado)}</div></div>
-      <div class="caseta-tarifa">$${c.tarifa.toFixed(0)}</div></div>`;
+      <div class="caseta-tarifa">${formatMXN(c.tarifa)}</div></div>`;
   });
   html += '</div>';
   if (S.casetas.some(c => c.incierto)) html += `<div class="alert alert-warn" style="margin-top:8px">⚠️ Una o más casetas (marcadas arriba) tienen varias tarifas posibles en la misma zona — confírmalas a mano antes de enviar la cotización.</div>`;
   const ida = totalCasetasIda();
-  html += `<div class="casetas-total"><span>Suma de la lista (${S.casetas.length} casetas)</span><span id="casetas-total-ida">$${total.toFixed(0)}</span></div>`;
-  html += `<div class="casetas-total"><span><b>Se cotiza · ida</b></span><span style="color:var(--accent)"><b>$${ida.toFixed(0)}</b></span></div>`;
-  html += `<div class="casetas-total" style="background:#fff3e0"><span>Se cotiza · ida y vuelta</span><span style="color:var(--accent);font-size:1rem">$${(ida*2).toFixed(0)}</span></div>`;
+  html += `<div class="casetas-total"><span>Suma de la lista (${S.casetas.length} casetas)</span><span id="casetas-total-ida">${formatMXN(total)}</span></div>`;
+  html += `<div class="casetas-total"><span><b>Se cotiza · ida</b></span><span style="color:var(--accent)"><b>${formatMXN(ida)}</b></span></div>`;
+  html += `<div class="casetas-total" style="background:#fff3e0"><span>Se cotiza · ida y vuelta</span><span style="color:var(--accent);font-size:1rem">${formatMXN(ida*2)}</span></div>`;
   html += avisoFuenteCasetas();
   html += `<div class="alert alert-info" style="margin-top:8px">Unidad C${ejes} · ${S.dist_km} km · Casetas con tarifa por eje correspondiente</div>`;
   p.innerHTML = html + cajaManual();
@@ -1089,7 +1096,7 @@ async function generarCotizacion_(ejes) {
   $('aviso-sin-ruta').style.display = 'none';
   if (!S.casetas.length && S.casetasManual == null && !(S.casetasFuente === 'tabla' && S.casetasTotalIda > 0) && S.dist_km > 60
       && !confirm('Esta ruta no tiene casetas (' + (S.casetas_aviso || 'la SCT no devolvió ninguna') + ').\n\n¿Cotizar SIN casetas? Pulsa Cancelar para escribir el monto a mano en el cuadro de casetas.')) return;
-  const num = id => parseInt($(id).value) || 0;
+  const num = id => parseInt($(id).value, 10) || 0;   // vacío cuenta como 0
   const payload = {
     unidad: S.unidad, dist_km: S.dist_km, casetas: S.casetas, casetas_total_ida: totalCasetasIda(),
     casetas_fuente: fuenteCasetas(), m3_estimado: S.m3,
@@ -1105,7 +1112,20 @@ async function generarCotizacion_(ejes) {
   try { mostrarCotizacion(await adm('cotizar', payload)); mostrarCasetasPanel(); irPaso(4); }
   catch (e) { alert('Error al cotizar: ' + e); }
 }
-function fmx(n) { return '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0}); }
+// 💰 Un solo formato de dinero en toda la app (y en el mensaje de WhatsApp).
+const _mxn = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function formatMXN(n) { return _mxn.format(Number(n) || 0); }
+const fmx = formatMXN;   // nombre viejo, por si queda alguna llamada
+
+// 📅 La fecha de carga se guarda en ISO (AAAA-MM-DD) y se muestra en palabras.
+const _MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function fechaISOaTexto(iso, mayus) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || '').trim());
+  if (!m) return String(iso || '').trim();
+  const t = Number(m[3]) + ' de ' + _MESES[Number(m[2]) - 1] + ' de ' + m[1];
+  return mayus ? t.toUpperCase().replace(' DE ', ' DE ').replace(/ DE (\d{4})$/, ' DEL $1') : t;
+}
+function hoyISO() { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
 
 // IVA: con IVA, empresa (IVA con retención del 4% al autotransporte) o sin IVA.
 const MODOS_IVA = {
@@ -1127,6 +1147,7 @@ function mostrarCotizacion(d0, mismoFolio) {
   const folio = mismoFolio && window._cotData ? window._cotData.folio : 'CTZ-' + Date.now().toString().slice(-6);
   const fecha = new Date().toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'});
   const cliente = $('cliente-nombre').value || '—', tel = $('cliente-tel').value || '—', notas = $('notas').value || '';
+  const fechaCarga = fechaISOaTexto($('fecha-carga').value);
   const origen = $('origen').value, destino = $('destino').value;
   const zonaLabel = {local:'Local',regional:'Regional',nacional:'Nacional'}[d.zona];
   window._cotData = { d, d0, folio, fecha, cliente, tel, origen, destino };
@@ -1152,6 +1173,7 @@ function mostrarCotizacion(d0, mismoFolio) {
     <div style="margin-bottom:12px">
       <div style="display:flex;gap:20px;font-size:.85rem;color:var(--gray-600)"><div>👤 <strong>${escHtml(cliente)}</strong></div><div>📱 ${escHtml(tel)}</div></div>
       <div style="font-size:.82rem;color:var(--gray-600);margin-top:4px">📍 ${escHtml(origen)}<br>📍 ${escHtml(destino)}</div>
+      ${fechaCarga ? `<div style="font-size:.82rem;color:var(--gray-600);margin-top:4px">📅 Carga: ${escHtml(fechaCarga)}</div>` : ''}
       ${notas ? `<div class="alert alert-warn" style="margin-top:8px">📝 ${escHtml(notas)}</div>` : ''}
     </div>
     <table class="desglose">
@@ -1231,7 +1253,8 @@ function _payloadExport() {
     }
   }
   return { folio: cd.folio, origen: $('origen').value, destino: $('destino').value, cliente_nombre: $('cliente-nombre').value,
-    cliente_tel: $('cliente-tel').value, fecha_carga: $('fecha-carga').value || null, unidad: S.unidad, cotizacion: cot };
+    cliente_tel: $('cliente-tel').value, fecha_carga: fechaISOaTexto($('fecha-carga').value, true) || null,
+    fecha_carga_iso: $('fecha-carga').value || null, unidad: S.unidad, cotizacion: cot };
 }
 function bajarArchivo(r) {
   const bin = atob(r.b64), arr = new Uint8Array(bin.length);
@@ -1267,7 +1290,8 @@ async function compartirWA() {
     `Buen día, ${nombreCliente} 👋`, ``,
     `Es un placer para *Mudanzas TML* atenderte. Adjunto encontrarás la cotización formal para tu mudanza ${zonaLabel}. 📋`, ``,
     `━━━━━━━━━━━━━━━━━━━━`, `🚛 *Cotización ${folio}*`, `━━━━━━━━━━━━━━━━━━━━`,
-    `📍 Origen: ${origen}`, `📍 Destino: ${destino}`, `📏 ${d.dist_km} km · Unidad ${d.unidad_m3} m³`, ``,
+    `📍 Origen: ${origen}`, `📍 Destino: ${destino}`, `📏 ${d.dist_km} km · Unidad ${d.unidad_m3} m³`,
+    ...(fechaISOaTexto($('fecha-carga').value) ? [`📅 Fecha de carga: ${fechaISOaTexto($('fecha-carga').value)}`] : []), ``,
     `💰 *TOTAL: ${fmx(precioTotal)} MXN (${TXT_IVA_WA[S.modoIva]})*`, ``,
     `━━━━━━━━━━━━━━━━━━━━`, `✅ *¿Por qué Mudanzas TML?*`,
     `• Personal capacitado y uniformado`, `• Embalaje profesional incluido en el servicio`, `• Puntualidad y cuidado garantizados`, `• Cobertura en toda la República Mexicana`, ``,
@@ -1297,6 +1321,11 @@ function nuevaCotizacion() {
   actualizarMapa(null); mapa.setView([23.5,-102.5],5);
   selUnidad(35); selector.limpiar(); limpiarModalIA(); irPaso(1);
 }
+// Al entrar a un campo de número se selecciona lo que tenga, para escribir encima.
+document.addEventListener('focusin', e => {
+  if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'number') { try { e.target.select(); } catch (x) {} }
+});
+$('fecha-carga').min = hoyISO();
 $('origen').addEventListener('keydown', e => { if (e.key === 'Enter') { if ($('destino').value.trim()) calcularRuta(); else $('destino').focus(); } });
 $('destino').addEventListener('keydown', e => { if (e.key === 'Enter') calcularRuta(); });
 

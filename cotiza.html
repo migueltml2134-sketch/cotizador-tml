@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Cotiza tu mudanza — Mudanzas TML</title>
-<script src="inventario.js?v=20261118202734"></script>
+<script src="inventario.js?v=20261118203824"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -125,8 +125,8 @@ footer { text-align: center; font-size: .74rem; color: var(--gray-400); padding:
 .sel-total { background: #f0f2f5; border: 1.5px solid #ddddee; border-radius: 8px; padding: 10px 12px; font-weight: 700; color: var(--primary); margin-top: 10px; text-align: center; }
 </style>
 <!-- Tema del sistema Mudanzas TML (mismo look que los demás módulos). Va al final: manda sobre lo de arriba. -->
-<link rel="stylesheet" href="tml-theme.css?v=20261118202734">
-<script>(function(){var V='20261118202734';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+<link rel="stylesheet" href="tml-theme.css?v=20261118203824">
+<script>(function(){var V='20261118203824';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
 </head>
 <body class="tml-portal">
 
@@ -150,7 +150,7 @@ footer { text-align: center; font-size: .74rem; color: var(--gray-400); padding:
       <label>Dirección a la que te mudas</label>
       <input type="text" id="destino" placeholder="Ej: Calle Juárez 50, Guadalajara" maxlength="200">
       <label>Fecha estimada (opcional)</label>
-      <input type="text" id="fecha-carga" placeholder="Ej: 15 de agosto" maxlength="60">
+      <input type="date" id="fecha-carga">
       <div id="error-1" class="alert alert-warn" style="display:none"></div>
       <div id="loader-1" class="loader"><div class="spinner"></div>Buscando direcciones y calculando tu ruta...</div>
       <button class="btn btn-primary" id="btn-paso1" onclick="irASiguiente()">Continuar →</button>
@@ -329,7 +329,17 @@ function actualizarPisos() {
   $('wrap-piso-origen').style.display = $('elevador-origen').checked ? 'none' : 'block';
   $('wrap-piso-destino').style.display = $('elevador-destino').checked ? 'none' : 'block';
 }
-function fmx(n) { return '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0}); }
+const _mxn = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function formatMXN(n) { return _mxn.format(Number(n) || 0); }
+const fmx = formatMXN;
+const _MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function fechaISOaTexto(iso, mayus) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || '').trim());
+  if (!m) return String(iso || '').trim();
+  const t = Number(m[3]) + ' de ' + _MESES[Number(m[2]) - 1] + ' de ' + m[1];
+  return mayus ? t.toUpperCase().replace(/ DE (\d{4})$/, ' DEL $1') : t;
+}
+try { $('fecha-carga').min = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10); } catch (e) {}
 async function generarCotizacionPublica() {
   const nombre = $('cliente-nombre').value.trim(), tel = $('cliente-tel').value.trim(), err = $('error-4');
   err.style.display = 'none';
@@ -346,7 +356,7 @@ async function generarCotizacionPublica() {
       piso_carga: $('elevador-origen').checked ? 0 : (parseInt($('piso-origen-num').value) || 0),
       piso_descarga: $('elevador-destino').checked ? 0 : (parseInt($('piso-destino-num').value) || 0),
       cliente_nombre: nombre, cliente_tel: tel, origen_texto: $('origen').value.trim(), destino_texto: $('destino').value.trim(),
-      fecha_carga: $('fecha-carga').value.trim(), notas: notas,
+      fecha_carga: fechaISOaTexto($('fecha-carga').value, true), notas: notas,
     });
     $('res-folio').textContent = d.folio; $('res-total').textContent = fmx(d.total);
     $('res-vigencia').textContent = `Cotización válida hasta el ${d.valido_hasta}`;
