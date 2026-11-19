@@ -7,7 +7,7 @@
 <title>Cotizador TML</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="inventario.js?v=20261118204340"></script>
+<script src="inventario.js?v=20261118204909"></script>
 <!-- Firebase Auth: mismas cuentas que el sistema de mudanzastml.mx (proyecto tml-liquidaciones) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -357,8 +357,8 @@ textarea { min-height: 80px; resize: vertical; }
 .tml-modulos a.activo { background: rgba(255,255,255,.22); color: #fff; }
 </style>
 <!-- Tema del sistema Mudanzas TML (mismo look que los demás módulos). Va al final: manda sobre lo de arriba. -->
-<link rel="stylesheet" href="tml-theme.css?v=20261118204340">
-<script>(function(){var V='20261118204340';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+<link rel="stylesheet" href="tml-theme.css?v=20261118204909">
+<script>(function(){var V='20261118204909';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
 </head>
 <body>
 
@@ -914,11 +914,9 @@ function marcarDireccion(tipo, ok) {
     (con la lupa, con Enter o al salir del campo). `soloBuscar` existe solo
     para la llamada interna de calcularRuta_, que si no se llamaría a sí misma. */
 async function trasDireccion(tipo) {
+  // Se busca SOLO la dirección que ella confirmó (lupa o Enter): si estaba mal,
+  // no se da por buena la otra. Cuando las dos tienen palomita, la ruta sale sola.
   if (!(await buscarSiFalta(tipo))) return;
-  // Si la otra dirección ya está escrita pero sin buscar, se busca también:
-  // así con Enter en el destino la ruta sale sin tocar nada más.
-  const otro = tipo === 'origen' ? 'destino' : 'origen';
-  if ($(otro).value.trim()) await buscarSiFalta(otro);
   if (S.olat && S.dlat && !rutaEnCurso) calcularRuta();
 }
 /** Busca la dirección solo si hace falta (no repite lo ya buscado). */
@@ -1347,10 +1345,13 @@ document.addEventListener('focusin', e => {
   if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'number') { try { e.target.select(); } catch (x) {} }
 });
 $('fecha-carga').min = hoyISO();
-$('origen').addEventListener('keydown', e => { if (e.key === 'Enter') { if ($('destino').value.trim()) trasDireccion('origen'); else { trasDireccion('origen'); $('destino').focus(); } } });
+// Enter confirma esa dirección; si falta la otra, el foco salta a ella.
+$('origen').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  trasDireccion('origen');
+  if (!$('destino').value.trim()) $('destino').focus();
+});
 $('destino').addEventListener('keydown', e => { if (e.key === 'Enter') trasDireccion('destino'); });
-// Al salir del campo (clic afuera o tabulador) también se busca y se calcula.
-['origen', 'destino'].forEach(id => $(id).addEventListener('change', () => trasDireccion(id)));
 
 // ── Inventario (sin IA de pago) ───────────────────────────────────────────
 let iaArchivos = [], iaDatos = null, selM3 = 0, selItems = [];
