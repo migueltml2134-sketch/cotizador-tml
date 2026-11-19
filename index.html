@@ -7,7 +7,7 @@
 <title>Cotizador TML</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="inventario.js?v=20261118201608"></script>
+<script src="inventario.js?v=20261118202734"></script>
 <!-- Firebase Auth: mismas cuentas que el sistema de mudanzastml.mx (proyecto tml-liquidaciones) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -357,8 +357,8 @@ textarea { min-height: 80px; resize: vertical; }
 .tml-modulos a.activo { background: rgba(255,255,255,.22); color: #fff; }
 </style>
 <!-- Tema del sistema Mudanzas TML (mismo look que los demás módulos). Va al final: manda sobre lo de arriba. -->
-<link rel="stylesheet" href="tml-theme.css?v=20261118201608">
-<script>(function(){var V='20261118201608';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
+<link rel="stylesheet" href="tml-theme.css?v=20261118202734">
+<script>(function(){var V='20261118202734';fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(v){v=v.trim();if(v&&v!==V&&location.search.indexOf('v='+v)<0){location.replace(location.pathname+'?v='+v)}}).catch(function(){})})();</script>
 </head>
 <body>
 
@@ -958,6 +958,8 @@ async function calcularRuta_(sinNavegar) {
   }
   $('loader-ruta').style.display = 'none'; $('btn-calcular-ruta').disabled = false;
   S.dist_km = d.dist_km; S.dur_min = d.dur_min; S.casetas = d.casetas; S.casetas_aviso = d.casetas_aviso || null; S.ejesRuta = ejes; S.casetasManual = null;
+  S.casetasTotalIda = d.casetas_total_ida; S.casetasFuente = d.casetas_fuente || 'sct';
+  S.casetasRuta = d.casetas_ruta || ''; S.casetasSumaSct = d.casetas_suma_sct;
   $('aviso-ejes').style.display = 'none';
   if (d.ruta_aviso) { $('error-ruta').textContent = '💾 ' + d.ruta_aviso; $('error-ruta').style.display = 'block'; }
   actualizarMapa(d.coords); mostrarRutaInfo(); mostrarCasetasPanel();
@@ -971,21 +973,46 @@ function mostrarRutaInfo() {
 }
 const cajaManual = () => `<div style="margin-top:10px;padding:10px;border:1.5px dashed #fdba74;border-radius:8px;background:#fff7ed">
     <label for="casetas-manual" style="margin:0 0 4px;color:#9a3412">✏️ Corregir casetas a mano — total de IDA ($)</label>
-    <input type="number" id="casetas-manual" min="0" step="1" placeholder="Déjalo vacío para usar el de la SCT" value="${S.casetasManual != null ? S.casetasManual : ''}" oninput="ponerCasetasManual(this.value)">
+    <input type="number" id="casetas-manual" min="0" step="1" placeholder="Vacío = el que calcula el sistema" value="${S.casetasManual != null ? S.casetasManual : ''}" oninput="ponerCasetasManual(this.value)">
     <div style="font-size:.72rem;color:#9a3412;margin-top:4px">Se cobra ida y vuelta (×2). Úsalo si conoces el monto real.</div></div>`;
 function ponerCasetasManual(v) {
   S.casetasManual = v === '' ? null : Math.max(0, parseFloat(v) || 0);
-  const t = $('casetas-total-ida'); if (t) t.style.textDecoration = S.casetasManual != null ? 'line-through' : 'none';
+  mostrarCasetasPanelSiHay_();
 }
-/** Casetas que se mandan a cotizar: las de la SCT, o el monto escrito a mano. */
-function casetasParaCotizar() {
-  return S.casetasManual != null ? [{ nombre: 'Casetas (monto a mano)', tarifa: S.casetasManual }] : S.casetas;
+/** Total de casetas de IDA que se cotiza: lo escrito a mano, si no lo que mandó
+    el servidor (tabla de rutas conocidas, o la suma de la SCT). */
+function totalCasetasIda() {
+  if (S.casetasManual != null) return S.casetasManual;
+  if (S.casetasTotalIda != null && isFinite(S.casetasTotalIda)) return S.casetasTotalIda;
+  return S.casetas.reduce((a, c) => a + (Number(c.tarifa) || 0), 0);
+}
+function fuenteCasetas() { return S.casetasManual != null ? 'manual' : (S.casetasFuente || 'sct'); }
+/** Aviso de dónde salió el monto, para que se vea qué tan confiable es. */
+function avisoFuenteCasetas() {
+  const f = fuenteCasetas();
+  if (f === 'manual') return `<div class="alert alert-warn" style="margin-top:8px">✏️ Se cotiza con el monto que escribiste: <b>${fmx(S.casetasManual)}</b> de ida.</div>`;
+  if (f === 'tabla') {
+    const sct = S.casetasSumaSct, dif = sct ? Math.round((S.casetasTotalIda - sct) / sct * 100) : 0;
+    return `<div class="alert alert-success" style="margin-top:8px">✅ <b>Tabla de rutas</b> (${escHtml(S.casetasRuta)}): se cotiza con <b>${fmx(S.casetasTotalIda)}</b> de ida.
+      ${sct ? `La SCT daba ${fmx(sct)} (${dif >= 0 ? '+' : ''}${dif}%), por eso la lista de abajo no suma igual.` : ''}</div>`;
+  }
+  return `<div class="alert alert-info" style="margin-top:8px">ℹ️ Monto de la <b>SCT en vivo</b>. Esta ruta no está en la tabla de rutas conocidas; si sabes el real, escríbelo abajo.</div>`;
+}
+let repintando_ = false;
+/** Al escribir el monto a mano se repinta el panel para que cuadren los totales. */
+function mostrarCasetasPanelSiHay_() {
+  if (repintando_) return;
+  repintando_ = true;
+  // Ojo: los <input type="number"> no admiten selectionStart/End, solo focus.
+  try { mostrarCasetasPanel(); const i = $('casetas-manual'); if (i) i.focus(); }
+  finally { repintando_ = false; }
 }
 function mostrarCasetasPanel() {
   const p = $('casetas-panel');
   if (!S.casetas.length) {
     p.innerHTML = (S.casetas_aviso ? `<div class="alert" style="margin:8px 0;background:#fef2f2;color:#991b1b;border:1.5px solid #fca5a5">⛔ <b>No llegaron las casetas de la SCT</b> (${escHtml(S.casetas_aviso)}). Vuelve a dar <b>Calcular ruta</b> o escribe el monto abajo.</div>`
-      : '<div style="color:var(--gray-400);text-align:center;padding:20px">Sin casetas en la ruta (ruta local o libre)</div>') + cajaManual();
+      : '<div style="color:var(--gray-400);text-align:center;padding:20px">Sin casetas en la ruta (ruta local o libre)</div>')
+      + (S.casetasFuente === 'tabla' ? avisoFuenteCasetas() : '') + cajaManual();
     return;
   }
   const ejes = S.ejesRuta || (S.unidad === 35 ? 2 : 3), total = S.casetas.reduce((a,c)=>a+c.tarifa,0);
@@ -998,8 +1025,11 @@ function mostrarCasetasPanel() {
   });
   html += '</div>';
   if (S.casetas.some(c => c.incierto)) html += `<div class="alert alert-warn" style="margin-top:8px">⚠️ Una o más casetas (marcadas arriba) tienen varias tarifas posibles en la misma zona — confírmalas a mano antes de enviar la cotización.</div>`;
-  html += `<div class="casetas-total"><span>Total ida (${S.casetas.length} casetas)</span><span style="color:var(--accent)" id="casetas-total-ida">$${total.toFixed(0)}</span></div>`;
-  html += `<div class="casetas-total" style="background:#fff3e0"><span>Total ida + vuelta</span><span style="color:var(--accent);font-size:1rem">$${(total*2).toFixed(0)}</span></div>`;
+  const ida = totalCasetasIda();
+  html += `<div class="casetas-total"><span>Suma de la lista (${S.casetas.length} casetas)</span><span id="casetas-total-ida">$${total.toFixed(0)}</span></div>`;
+  html += `<div class="casetas-total"><span><b>Se cotiza · ida</b></span><span style="color:var(--accent)"><b>$${ida.toFixed(0)}</b></span></div>`;
+  html += `<div class="casetas-total" style="background:#fff3e0"><span>Se cotiza · ida y vuelta</span><span style="color:var(--accent);font-size:1rem">$${(ida*2).toFixed(0)}</span></div>`;
+  html += avisoFuenteCasetas();
   html += `<div class="alert alert-info" style="margin-top:8px">Unidad C${ejes} · ${S.dist_km} km · Casetas con tarifa por eje correspondiente</div>`;
   p.innerHTML = html + cajaManual();
   ponerCasetasManual(S.casetasManual == null ? '' : String(S.casetasManual));
@@ -1057,11 +1087,12 @@ async function generarCotizacion_(ejes) {
     $('btn-generar').textContent = '⏳ Generando...';
   }
   $('aviso-sin-ruta').style.display = 'none';
-  if (!S.casetas.length && S.casetasManual == null && S.dist_km > 60
+  if (!S.casetas.length && S.casetasManual == null && !(S.casetasFuente === 'tabla' && S.casetasTotalIda > 0) && S.dist_km > 60
       && !confirm('Esta ruta no tiene casetas (' + (S.casetas_aviso || 'la SCT no devolvió ninguna') + ').\n\n¿Cotizar SIN casetas? Pulsa Cancelar para escribir el monto a mano en el cuadro de casetas.')) return;
   const num = id => parseInt($(id).value) || 0;
   const payload = {
-    unidad: S.unidad, dist_km: S.dist_km, casetas: casetasParaCotizar(), m3_estimado: S.m3,
+    unidad: S.unidad, dist_km: S.dist_km, casetas: S.casetas, casetas_total_ida: totalCasetasIda(),
+    casetas_fuente: fuenteCasetas(), m3_estimado: S.m3,
     recoleccion_adicional: $('recoleccion-adicional').checked,
     recoleccion_monto: $('recoleccion-adicional').checked && $('recoleccion-monto').value !== '' ? parseFloat($('recoleccion-monto').value) || 0 : null,
     piso_carga: num('piso-carga'), piso_descarga: num('piso-descarga'), vuelo_piezas: num('vuelo-piezas'), vuelo_pisos: num('vuelo-pisos'),
@@ -1253,7 +1284,7 @@ async function compartirWA() {
 }
 
 function nuevaCotizacion() {
-  Object.assign(S, { olat: null, olon: null, dlat: null, dlon: null, dist_km: 0, casetas: [], casetas_aviso: null, unidad: 35, m3: 20, ejesRuta: null, casetasManual: null, modoIva: 'iva' });
+  Object.assign(S, { olat: null, olon: null, dlat: null, dlon: null, dist_km: 0, casetas: [], casetas_aviso: null, unidad: 35, m3: 20, ejesRuta: null, casetasManual: null, casetasTotalIda: null, casetasFuente: 'sct', casetasRuta: '', casetasSumaSct: null, modoIva: 'iva' });
   ['origen','destino','fecha-carga','notas','cliente-nombre','cliente-tel'].forEach(id => $(id).value = '');
   ['origen-ok','destino-ok','error-ruta','aviso-ejes'].forEach(id => $(id).style.display = 'none');
   $('ruta-info').style.display = 'none'; $('btn-calcular-ruta').disabled = true;
